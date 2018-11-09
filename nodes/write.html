@@ -1,0 +1,69 @@
+<script type="text/javascript">
+  RED.nodes.registerType('FINS Write', {
+    category: 'OMRON',
+    color: '#0090d4',
+    defaults: {
+      name: { value: "" },
+      topic: { value: "" },
+      connection: { type: "FINS Connection", required: true },
+      address: { value: "" },
+      data: { value: "" }
+    },
+    inputs: 1,
+    outputs: 1,
+    inputLabels: "Trigger request",
+    outputLabels: "Write result",
+    align: "right",
+    icon: "write.png",
+    label: function () {
+      return this.name || "FINS Write";
+    }
+  });
+</script>
+
+<script type="text/x-red" data-template-name="FINS Write">
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> <span data-i18n="write.label.name"> Name</span></label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <div class="form-row">
+      <label for="node-input-connection"><i class="icon-tag"></i><span data-i18n="write.label.connection"> Connection</span></label>
+      <input type="text" id="node-input-connection">
+    </div>
+    <div class="form-row">
+        <label for="node-input-address"><i class="icon-tag"></i> <span data-i18n="write.label.address"> Address</span></label>
+        <input type="text" id="node-input-address" placeholder="e.g. D10 or leave blank to use payload.address">
+    </div>
+    <div class="form-row">
+        <label for="node-input-data"><i class="icon-tag"></i> <span data-i18n="write.label.data"> Data</span></label>
+        <input type="text" id="node-input-data" placeholder="e.g. 1,2,3 or leave blank to use payload.data">
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="FINS Write">
+    <p>Write data to an OMRON PLC using FINS protocol</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="optional">payload
+            <span class="property-type">object</span>
+        </dt>
+        <dd> If address and data properties are left blank and the payload is an object containing .address and .data, these will be used instead. </dd>
+    </dl>
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dt>payload <span class="property-type">array</span></dt>
+        <dd>the result of the PLC write command.</dd>
+    </dl>
+    <h3>Details</h3>
+    <p><code>msg.payload</code> can be used to provide <code>.address</code> and <code>.data</code>.  
+      <code>msg.payload</code> will only be used if node properties <code>address</code> or <code>data</code> are left blank.</p>
+    <p>data must be one of the following...
+      <ul>
+          <li>integer (This will be written to the address provided)</li>
+          <li>string containing an integer (This will be written to the address provided)</li>
+          <li>array of integer (These will be written to the PLC starting at the address provided)</li>
+          <li>comma separated list of integer (These will be written to the PLC starting at the address provided)</li>
+      </ul>
+     </p>
+</script>
