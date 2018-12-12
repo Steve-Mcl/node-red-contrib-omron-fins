@@ -1,6 +1,4 @@
 var util = require("util");
-var settings = require(process.env.NODE_RED_HOME + "/red/red").settings;
-
 var clients = {};
 
 
@@ -102,7 +100,7 @@ module.exports = {
           connecting = false;
           setTimeout(function () {
             obj.connect();
-          }, settings.FINSReconnectTime || 5000);
+          },  5000);//TPDO: Parameterise
         });
 
         return obj
