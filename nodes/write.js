@@ -87,11 +87,20 @@ module.exports = function (RED) {
         node.send(newMsg);
       }
       this.on('input', function (msg) {
+        node.status({});//clear status
+
+				if(msg.disconnect === true || msg.topic === 'disconnect'){
+					node.connection.closeConnection();
+					return;
+				} else if(msg.connect === true || msg.topic === 'connect'){
+					node.connection.connect();
+					return;
+				}
+
         if(node.busy)
           return;//TODO: Consider queueing inputs?
 
 				/* ****************  Node status **************** */
-				node.status({});//clear status
 				var nodeStatusError = function(err,msg,statusText){
 					if(err){
 						console.error(err);
@@ -150,15 +159,15 @@ module.exports = function (RED) {
               }
             }, node.busyTimeMax);
           }          
-          node.sid = this.client.write(addr, data, myReply);
+          node.sid = this.client.write(address, data, myReply);
         } catch (error) {
           node.sid = null;
           node.busy = false;
           nodeStatusError(error,msg,"Error")
           var dbgmsg = { 
-						info: "write.js-->on 'input' - try this.client.write(addr, data, myReply)",
+						info: "write.js-->on 'input' - try this.client.write(address, data, myReply)",
             connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`, 
-            address: addr,
+            address: address,
             data: data,
 						error: error
 					 };

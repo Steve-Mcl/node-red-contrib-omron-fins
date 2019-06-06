@@ -43,7 +43,7 @@ module.exports = function (RED) {
 
         if(msg.timeout)  {
           node.status({fill:"red",shape:"ring",text:"timeout"});
-					node.error("timeout");
+					node.error("timeout",msg);
 					var dbgmsg = {
             f: 'myReply(msg)',
             msg: msg,
@@ -55,7 +55,7 @@ module.exports = function (RED) {
 				
         if(node.sid && msg.response && node.sid != msg.response.sid){
           node.status({fill:"red",shape:"dot",text:"Incorrect SID"});
-					node.error(`SID does not match! My SID: ${node.sid}, reply SID:${msg.response.sid}`);
+					node.error(`SID does not match! My SID: ${node.sid}, reply SID:${msg.response.sid}`,msg);
 					var dbgmsg = {
             f: 'myReply(msg)',
             msg: msg,
@@ -72,7 +72,7 @@ module.exports = function (RED) {
 					else if(msg.response && msg.response.endCodeDescription)
 						ecd = msg.response.endCodeDescription; 
           node.status({fill:"red", shape:"dot", text:ecd});
-					node.error(`Response is NG! endCode: ${msg.response.endCode}, endCodeDescription:${msg.response.endCodeDescription}`);
+					node.error(`Response is NG! endCode: ${msg.response.endCode}, endCodeDescription:${msg.response.endCodeDescription}`,msg);
 					var dbgmsg = {
             f: 'myReply(msg)',
             msg: msg,
@@ -103,11 +103,20 @@ module.exports = function (RED) {
       }
 
 			this.on('input', function (msg) {
+				node.status({});//clear status
+
+				if(msg.disconnect === true || msg.topic === 'disconnect'){
+					node.connection.closeConnection();
+					return;
+				} else if(msg.connect === true || msg.topic === 'connect'){
+					node.connection.connect();
+					return;
+				}
+
 				if(node.busy)
 					return;//TODO: Consider queueing inputs?
 				
 				/* ****************  Node status **************** */
-				node.status({});//clear status
 				var nodeStatusError = function(err,msg,statusText){
 					if(err){
 						console.error(err);
@@ -144,7 +153,7 @@ module.exports = function (RED) {
 						}
 				});
 
-				if(addr == "")	{
+				if(address == "")	{
 					nodeStatusError(null,msg,"address is empty");
 					return;
 				}
@@ -164,23 +173,21 @@ module.exports = function (RED) {
 					if (node.busyTimeMax) {
 						node.busyMonitor = setTimeout(function() {
 							if(node.busy){
-								node.status({fill:"red",shape:"ring",text:"timeout"});
-								node.error("timeout");
+								nodeStatusError(null,msg,"timeout")
 								node.busy = false;
 								return;
 							}
 						}, node.busyTimeMax);
 					}
-					node.sid = this.client.read(addr, parseInt(count), myReply);
+					node.sid = this.client.read(address, parseInt(count), myReply);
 				} catch (error) {
 					node.sid = null;
           node.busy = false;
-          node.error(error);
-					node.status({fill:"red",shape:"ring",text:"error"});
+					nodeStatusError(error,msg,"Error")
 					var dbgmsg = { 
 						info: "read.js-->on 'input'",
             connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`, 
-            address: addr,
+            address: address,
             size: count,
 					 };
 					console.debug(dbgmsg);
@@ -191,8 +198,7 @@ module.exports = function (RED) {
 			node.status({fill:"green",shape:"ring",text:"ready"});
 
 		} else {
-			node.error("configuration not setup");
-			node.status({fill:"red",shape:"ring",text:"error"});
+			nodeStatusError(null,msg,"configuration not setup")
     }
 	}
 	RED.nodes.registerType("FINS Read", omronRead);

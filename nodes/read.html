@@ -82,12 +82,13 @@
 <script type="text/x-red" data-help-name="FINS Read">
     <h3>Inputs</h3>
     <dl class="message-properties">
-      <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
-      <dd>The PLC connection</dd>
-      <dt class="required">Address<span class="property-type">string</span></dt>
-      <dd>PLC Memory Address</dd>
-      <dt class="required">Data<span class="property-type">number | string</span></dt>
-      <dd>PLC Memory Address</dd>
+        <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
+        <dd>The PLC connection</dd>
+        <dt class="required">Address<span class="property-type">string</span></dt>
+        <dd>PLC Memory Address</dd>
+        <dt class="required">Count<span class="property-type">number</span></dt>
+        <dd>Count of addresses to read</dd>
+        <p><i>INFO: To open / close the FINS Protocol connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS read / FINS write node.</i></p>
     </dl>    
     <p>Read data from an OMRON PLCs using FINS protocol</p>
     <h3>Outputs</h3>
