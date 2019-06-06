@@ -49,6 +49,46 @@
 </script>
 
 
+<script type="text/x-red" data-help-name="FINS Connection">
+  <p>FINS Connection</p>
+    <h3>Details</h3>
+
+      <dt>ICF</dt>
+      <dd>Information Control Field: Default = 0x80</dd> 
+
+      <dt>DNA</dt>
+      <dd>
+        Destination Network Address: Enter 0 for Local, 0x1~0x7f for remote
+      </dd>
+      
+      <dt>DA1</dt>
+      <dd>
+        Destination Node: Enter 0 for internal
+      </dd>
+      
+      <dt>DA2</dt>
+      <dd>
+        Destination Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board
+      </dd>
+      
+      <dt>SNA</dt>
+      <dd>
+        Source Network Address: Enter 0 for Local, 0x1~0x7f for remote
+      </dd>
+      
+      <dt>SA1</dt>
+      <dd>
+        Source Node: Enter 0 for internal
+      </dd>
+      
+      <dt>SA2</dt>
+      <dd>
+        Source Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board
+      </dd>
+      
+    </dl>
+  </script>
+
 <script type="text/javascript">
   RED.nodes.registerType('FINS Connection', {
     category: 'config',
