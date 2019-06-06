@@ -10,8 +10,8 @@ function convertPayloadToDataArray(payload) {
     return payload;
   } else if (typeof payload === "string") {
     str = "" + payload;
-  } else if (typeof payload === "object") {
-    str = "" + payload.data;
+  } else if (typeof payload === "number") {
+    str = "" + payload;
   } else {
     array = payload;
   }
@@ -43,14 +43,14 @@ module.exports = {
         var client = fins.FinsClient(parseInt(p), h, options);
         var connecting = false;
 
-        options.autoConnect = options.autoConnect == "undefined" ? true : options.autoConnect;
+        options.autoConnect = options.autoConnect == undefined ? true : options.autoConnect;
         options.preventAutoReconnect = false;
 
         var obj = {
 
           _instances: 0,
           write: function (addr, data, callback) {
-            if (!client.isConnected()) {
+            if (!client.connected && options.preventAutoReconnect) {
               throw new Error("Not connected!")
             }
             var data = convertPayloadToDataArray(data);
@@ -61,6 +61,9 @@ module.exports = {
             return sid;
           },
           read: function (addr, len, callback) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
             var sid = client.read(addr, parseInt(len), callback);
             return sid;
           },
