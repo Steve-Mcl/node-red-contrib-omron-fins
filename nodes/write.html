@@ -4,10 +4,11 @@
     color: '#0090d4',
     defaults: {
       name: { value: "" },
-      topic: { value: "" },
       connection: { type: "FINS Connection", required: true },
-      address: { value: "" },
-      data: { value: "" }
+      address: { value: "topic", validate: RED.validators.typedInput("addressType") },
+      addressType: { value: "msg" },
+      data: { value: "payload", validate: RED.validators.typedInput("dataType") },
+      dataType: { value: "msg" }
     },
     inputs: 1,
     outputs: 1,
@@ -17,6 +18,34 @@
     icon: "write.png",
     label: function () {
       return this.name || "FINS Write";
+    },
+    oneditprepare: function () {
+      var node = this;
+      function setupTypedInput(varName, types, def) {
+        debugger
+        let varSel = '#node-input-' + varName;
+        let typeSel = varSel + 'Type';
+        let varVal = node[varName];
+        let typeVal = node[varName + 'Type'];
+
+        if (typeVal == null || typeVal === 'none') {
+            typeVal = def;
+        } else if (typeVal === 'string') {
+            typeVal = "str";
+        } else if (typeVal === 'number') {
+            typeVal = "num";
+        }
+        $(typeSel).val(typeVal);
+        $(varSel).typedInput({
+            default: def,
+            typeField: $(typeSel),
+            types: types
+        });
+        $(varSel).typedInput('type', typeVal);
+      }
+
+      setupTypedInput('address', ["msg","flow","global","str"], 'msg');
+      setupTypedInput('data', ["msg","flow","global","num", "json"], 'msg');
     }
   });
 </script>
@@ -31,39 +60,36 @@
       <input type="text" id="node-input-connection">
     </div>
     <div class="form-row">
-        <label for="node-input-address"><i class="icon-tag"></i> <span data-i18n="write.label.address"> Address</span></label>
-        <input type="text" id="node-input-address" placeholder="e.g. D10 or leave blank to use payload.address">
+      <label for="node-input-address"><i class="icon-tag"></i> <span data-i18n="write.label.address"> Address</span></label>
+      <input type="text" id="node-input-address" placeholder="">
+      <input type="hidden" id="node-input-addressType">
     </div>
     <div class="form-row">
-        <label for="node-input-data"><i class="icon-tag"></i> <span data-i18n="write.label.data"> Data</span></label>
-        <input type="text" id="node-input-data" placeholder="e.g. 1,2,3 or leave blank to use payload.data">
+      <label for="node-input-data"><i class="icon-tag"></i> <span data-i18n="write.label.data"> Data</span></label>
+      <input type="text" id="node-input-data" placeholder="">
+      <input type="hidden" id="node-input-dataType">
     </div>
-
 </script>
 
 <script type="text/x-red" data-help-name="FINS Write">
-    <p>Write data to an OMRON PLC using FINS protocol</p>
-    <h3>Inputs</h3>
-    <dl class="message-properties">
-        <dt class="optional">payload
-            <span class="property-type">object</span>
-        </dt>
-        <dd> If address and data properties are left blank and the payload is an object containing .address and .data, these will be used instead. </dd>
-    </dl>
-    <h3>Outputs</h3>
-    <dl class="message-properties">
-        <dt>payload <span class="property-type">array</span></dt>
-        <dd>the result of the PLC write command.</dd>
-    </dl>
-    <h3>Details</h3>
-    <p><code>msg.payload</code> can be used to provide <code>.address</code> and <code>.data</code>.  
-      <code>msg.payload</code> will only be used if node properties <code>address</code> or <code>data</code> are left blank.</p>
-    <p>data must be one of the following...
-      <ul>
-          <li>integer (This will be written to the address provided)</li>
-          <li>string containing an integer (This will be written to the address provided)</li>
-          <li>array of integer (These will be written to the PLC starting at the address provided)</li>
-          <li>comma separated list of integer (These will be written to the PLC starting at the address provided)</li>
-      </ul>
-     </p>
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
+    <dd>The PLC connection</dd>
+    <dt class="required">Address<span class="property-type">string</span></dt>
+    <dd>PLC Memory Address</dd>
+    <dt class="required">Data<span class="property-type">number | string</span></dt>
+    <dd>PLC Memory Address</dd>
+  </dl>
+  <p>Write data to an OMRON PLC using FINS protocol</p>
+  <h3>Details</h3>
+  <p>data must be one of the following...
+    <ul>
+        <li>integer (This will be written to the address provided)</li>
+        <li>string containing an integer (This will be written to the address provided)</li>
+        <li>array of integer (These will be written to the PLC starting at the address provided)</li>
+        <li>comma separated list of integer (These will be written to the PLC starting at the address provided)</li>
+    </ul>
+    The count of data elements determines how many addresses are written. e.g. if you use [1,2,3,4,5] as the data source and D100 as the address, then D100 ~ D104 will be overwritten  
+    </p>
 </script>

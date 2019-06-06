@@ -4,15 +4,15 @@ module.exports = function (RED) {
 
   function omronWrite(config) {
     RED.nodes.createNode(this, config);
-
-    this.name = config.name;
-    this.topic = config.topic;
-    this.connection = config.connection;
-    this.address = config.address;
-    this.data = config.data;
-    this.connectionConfig = RED.nodes.getNode(this.connection);
-    var context = this.context();
     var node = this;
+    node.name = config.name;
+    node.connection = config.connection;
+		node.address = config.address || "topic";
+		node.addressType = config.addressType || "msg";
+		node.data = config.data || "payload";
+		node.dataType = config.dataType || "msg";
+    node.connectionConfig = RED.nodes.getNode(node.connection);
+    var context = node.context();
     node.sid = "";
     node.busy = false;
 		node.busyTimeMax = 1000;//TODO: Parameterise hard coded value!
@@ -90,18 +90,50 @@ module.exports = function (RED) {
         if(node.busy)
           return;//TODO: Consider queueing inputs?
 
-				var addr = node.address;  
-				var data = node.data; 
-				if(!addr)
-					addr = msg.payload.address;
-				if(!data)
-					data = msg.payload.data;
-				if(!addr)	{
-					node.error("Address is empty");
+				/* ****************  Node status **************** */
+				node.status({});//clear status
+				var nodeStatusError = function(err,msg,statusText){
+					if(err){
+						console.error(err);
+						node.error(err,msg);
+					} else {
+						console.error(statusText);
+						node.error(statusText,msg);
+					}
+					node.status({fill:"red",shape:"dot",text:statusText});
+				}
+				var nodeStatusParameterError = function(err, msg, propName){
+						nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value")
+        }
+                  
+				/* ****************  Get address Parameter **************** */
+				var address;
+				RED.util.evaluateNodeProperty(node.address,node.addressType,node,msg,(err,value) => {
+						if (err) {
+								nodeStatusParameterError(err,msg,"address");
+								return;//halt flow!
+						} else {
+								address = value; 
+						}
+				});
+
+				/* ****************  Get data Parameter **************** */
+				var data;
+				RED.util.evaluateNodeProperty(node.data,node.dataType,node,msg,(err,value) => {
+						if (err) {
+								nodeStatusParameterError(err,msg,"data");
+								return;//halt flow!
+						} else {
+								data = value; 
+						}
+        });
+        
+        if(address == "")	{
+					nodeStatusError(null,msg,"address is empty");
 					return;
 				}
 				if(!data)	{
-					node.error("data is empty");
+					nodeStatusError(null,msg,"data is not valid");
 					return;
 				}
         
@@ -122,8 +154,7 @@ module.exports = function (RED) {
         } catch (error) {
           node.sid = null;
           node.busy = false;
-          node.error(error);
-          node.status({fill:"red",shape:"ring",text:"error"});
+          nodeStatusError(error,msg,"Error")
           var dbgmsg = { 
 						info: "write.js-->on 'input' - try this.client.write(addr, data, myReply)",
             connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`, 
@@ -139,8 +170,7 @@ module.exports = function (RED) {
       node.status({fill:"green",shape:"ring",text:"ready"});
 
     } else {
-      node.error("configuration not setup");
-      node.status({fill:"red",shape:"ring",text:"error"});
+      nodeStatusError(null,msg,"configuration not setup")
     }
 
   }

@@ -5,8 +5,10 @@
         defaults: {
             name: { value: "" },
             connection: { type: "FINS Connection", required: true },
-            address: { value: "" },
-            count: { value: 1 },
+            address: { value: "topic", validate: RED.validators.typedInput("addressType") },
+            addressType: { value: "msg" },
+            count: { value: 1, validate: RED.validators.typedInput("countType") },
+            countType: { value: "num" },
             sign: { value: "" }
         },
         inputs: 1,
@@ -17,6 +19,33 @@
         icon: "read.png",
         label: function () {
             return this.name || "FINS Read";
+        },
+        oneditprepare: function () {
+            var node = this;
+            function setupTypedInput(varName, types, def) {
+                let varSel = '#node-input-' + varName;
+                let typeSel = varSel + 'Type';
+                let varVal = node[varName];
+                let typeVal = node[varName + 'Type'];
+
+                if (typeVal == null || typeVal === 'none') {
+                    typeVal = def;
+                } else if (typeVal === 'string') {
+                    typeVal = "str";
+                } else if (typeVal === 'number') {
+                    typeVal = "num";
+                }
+                $(typeSel).val(typeVal);
+                $(varSel).typedInput({
+                    default: def,
+                    typeField: $(typeSel),
+                    types: types
+                });
+                $(varSel).typedInput('type', typeVal);
+            }
+
+            setupTypedInput('address', ["msg","flow","global","str"], 'msg');
+            setupTypedInput('count', ["msg","flow","global","num"], 'num');
         }
     });
 </script>
@@ -29,14 +58,16 @@
     <div class="form-row">
         <label for="node-input-connection"><i class="icon-tag"></i><span data-i18n="read.label.connection"> Connection</span></label>
         <input type="text" id="node-input-connection">
-      </div>
-      <div class="form-row">
+    </div>
+    <div class="form-row">
         <label for="node-input-address"><i class="icon-tag"></i> <span data-i18n="read.label.address"> Address</span></label>
-        <input type="text" id="node-input-address" placeholder="e.g. D10 or leave blank to use payload.address">
+        <input type="text" id="node-input-address" placeholder="">
+        <input type="hidden" id="node-input-addressType">
     </div>
     <div class="form-row">
         <label for="node-input-count"><i class="icon-tag"></i> <span data-i18n="read.label.count"> Count</span></label>
-        <input type="text" id="node-input-count" placeholder="e.g. 5 or leave blank to use payload.count">
+        <input type="text" id="node-input-count" placeholder="">
+        <input type="hidden" id="node-input-countType">
     </div>
     <div class="form-row" title="leave blank to use payload.sign (default value of .sign='signed')">
         <label for="node-input-sign"><i class="icon-tag"></i> <span data-i18n="read.label.sign"> Sign</span></label>
@@ -46,25 +77,22 @@
             <option value="unsigned">unsigned</option>
         </select>
     </div>    
-  
 </script>
 
-
 <script type="text/x-red" data-help-name="FINS Read">
-    <p>Read data from an OMRON PLCs using FINS protocol</p>
     <h3>Inputs</h3>
     <dl class="message-properties">
-        <dt class="optional">payload
-            <span class="property-type">object</span>
-        </dt>
-        <dd> If address, count or sign properties are left blank and the payload is an object containing .address, .count or .sign, these will be used instead.  NOTE: .sign can be 'signed' or 'unsigned' (any other value defaults to 'signed') </dd>
-    </dl>
+      <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
+      <dd>The PLC connection</dd>
+      <dt class="required">Address<span class="property-type">string</span></dt>
+      <dd>PLC Memory Address</dd>
+      <dt class="required">Data<span class="property-type">number | string</span></dt>
+      <dd>PLC Memory Address</dd>
+    </dl>    
+    <p>Read data from an OMRON PLCs using FINS protocol</p>
     <h3>Outputs</h3>
     <dl class="message-properties">
         <dt>payload <span class="property-type">array</span></dt>
         <dd>the values read from the PLC.</dd>
     </dl>
-    <h3>Details</h3>
-    <p><code>msg.payload</code> can be used to provide <code>.address</code>, <code>.count</code>, <code>.sign</code>.  
-    They will only be used if <code>address</code>, <code>count</code> or <code>.sign</code> node properties are left blank.</p>
 </script>

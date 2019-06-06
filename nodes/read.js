@@ -3,16 +3,17 @@ module.exports = function (RED) {
 	
 	function omronRead(config) {
 		RED.nodes.createNode(this, config);
-    this.name = config.name;
-    this.topic = config.topic;
-    this.connection = config.connection;
-		this.address = config.address;
-		this.count = config.count;
-		this.sign = config.sign;
-
-    this.connectionConfig = RED.nodes.getNode(this.connection);
-    var context = this.context();
-    var node = this;
+		var node = this;
+    node.name = config.name;
+    node.topic = config.topic;
+    node.connection = config.connection;
+		node.address = config.address || "topic";
+		node.addressType = config.addressType || "msg";
+		node.count = config.count || 1;
+		node.countType = config.countType || "num";
+		node.sign = config.sign;
+    node.connectionConfig = RED.nodes.getNode(node.connection);
+    var context = node.context();
 		node.busy = false;
 		node.busyMonitor;
 		node.busyTimeMax = 1000;//TODO: Parameterise hard coded value!
@@ -105,22 +106,51 @@ module.exports = function (RED) {
 				if(node.busy)
 					return;//TODO: Consider queueing inputs?
 				
-				var addr = node.address; 
-				var count = node.count; 
+				/* ****************  Node status **************** */
+				node.status({});//clear status
+				var nodeStatusError = function(err,msg,statusText){
+					if(err){
+						console.error(err);
+						node.error(err,msg);
+					} else {
+						console.error(statusText);
+						node.error(statusText,msg);
+					}
+					node.status({fill:"red",shape:"dot",text:statusText});
+				}
+				var nodeStatusParameterError = function(err, msg, propName){
+						nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value")
+				}
 
-				if(!addr)
-					addr = msg.payload.address;
-				if(!count)
-					count = msg.payload.count;
+				/* ****************  Get address Parameter **************** */
+				var address;
+				RED.util.evaluateNodeProperty(node.address,node.addressType,node,msg,(err,value) => {
+						if (err) {
+								nodeStatusParameterError(err,msg,"address");
+								return;//halt flow!
+						} else {
+								address = value; 
+						}
+				});
+
+				/* ****************  Get count Parameter **************** */
+				var count;
+				RED.util.evaluateNodeProperty(node.count,node.countType,node,msg,(err,value) => {
+						if (err) {
+								nodeStatusParameterError(err,msg,"count");
+								return;//halt flow!
+						} else {
+								count = value; 
+						}
+				});
+
 				if(addr == "")	{
-					node.error("address is empty");
-					node.status({fill:"red",shape:"ring",text:"error"});
+					nodeStatusError(null,msg,"address is empty");
 					return;
 				}
 				count = parseInt(count);
 				if(Number.isNaN(count))	{
-					node.error("count is not valid");
-					node.status({fill:"red",shape:"ring",text:"error"});
+					nodeStatusError(null,msg,"count is not valid");
 					return;
 				}
 				//if node
