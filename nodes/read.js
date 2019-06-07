@@ -35,7 +35,9 @@ module.exports = function (RED) {
 				node.status({fill:"red",shape:"dot",text:"not connected"});
 				node.busy = false;
       });
-
+      this.client.on('initialised', function (error) {
+        node.status({fill:"yellow",shape:"dot",text:"initialised"});
+      });
 
 			function myReply(msg) {
 				node.busy = false;//reset busy - allow node to be triggered

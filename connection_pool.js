@@ -84,10 +84,11 @@ module.exports = {
             }
           },
           closeConnection: function () {
+            options.preventAutoReconnect = true;
             if (client){
               client.close();
             }
-            options.preventAutoReconnect = true;
+            connecting = false;
           },
           decodeMemoryAddress: function (addressString) {
             return client.decodeMemoryAddress(addressString);
@@ -119,7 +120,7 @@ module.exports = {
           util.log(`[FINS] connection closed ~ ${id}`);
           connecting = false;
 
-          if(options.autoConnect){
+          if(options.autoConnect && !options.preventAutoReconnect){
             setTimeout(function () {
               if(options.autoConnect && !options.preventAutoReconnect){
                 util.log(`[FINS] autoConnect call from  error handler ~ ${id}`);

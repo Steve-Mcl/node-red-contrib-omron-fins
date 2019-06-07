@@ -8,7 +8,7 @@ module.exports = FinsClient;
 function FinsClient(port, host, options) {
     if (!(this instanceof FinsClient)) return new FinsClient(port, host, options);
     EventEmitter.call(this);
-    FinsClient.init.call(this, port, host, options);
+    this.init(port, host, options);
 };
 
 inherits(FinsClient, EventEmitter);
@@ -247,7 +247,7 @@ _decodePacket = function (buf, rinfo) {
     return { remoteHost: rinfo.address, command: command, endCode: endCode, endCodeDescription: endCodeDescription, values: data };
 };
 
-FinsClient.reconnect = function () {
+FinsClient.prototype.reconnect = function () {
     var self = this;
     self.init(self.port, self.host, self.options);
 }
@@ -264,7 +264,7 @@ function isInt(x,def){
     return v;
   }
 
-FinsClient.init = function (port, host, options) {
+FinsClient.prototype.init = function (port, host, options) {
     var self = this;
     var defaultHost = constants.DefaultHostValues;
     var defaultOptions = constants.DefaultOptions;
@@ -294,6 +294,7 @@ FinsClient.init = function (port, host, options) {
 
     this.connected = false;
     self.requests = {};
+    self.emit("initialised", options);
 
     function receive(buf, rinfo) {
         
@@ -318,6 +319,10 @@ FinsClient.init = function (port, host, options) {
         }
     }
 
+    function initialised() {
+        self.emit('initialised');
+        self.connected = true;
+    }
     function listening() {
         self.emit('open');
         self.connected = true;
@@ -584,9 +589,10 @@ FinsClient.prototype.status = function (callback) {
 
 
 FinsClient.prototype.close = function () {
+    this.connected = false;
     this.socket.close();
     this.socket.removeAllListeners();
-    this.connected = false;
+    this.emit('close');//HACK: - cant get socket "close" event to fire
 };
 
 

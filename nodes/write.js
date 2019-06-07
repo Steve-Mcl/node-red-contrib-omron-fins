@@ -33,6 +33,9 @@ module.exports = function (RED) {
       this.client.on('close', function (error) {
         node.status({fill:"red",shape:"dot",text:"not connected"});
       });
+      this.client.on('initialised', function (error) {
+        node.status({fill:"yellow",shape:"dot",text:"initialised"});
+      });
 
       function myReply(msg) {
         node.busy = false;//reset busy - allow node to be triggered
@@ -90,10 +93,10 @@ module.exports = function (RED) {
         node.status({});//clear status
 
 				if(msg.disconnect === true || msg.topic === 'disconnect'){
-					node.connection.closeConnection();
+					node.client.closeConnection();
 					return;
 				} else if(msg.connect === true || msg.topic === 'connect'){
-					node.connection.connect();
+					node.client.connect();
 					return;
 				}
 
@@ -141,7 +144,7 @@ module.exports = function (RED) {
 					nodeStatusError(null,msg,"address is empty");
 					return;
 				}
-				if(!data)	{
+				if(!data && data !== 0)	{
 					nodeStatusError(null,msg,"data is not valid");
 					return;
 				}
