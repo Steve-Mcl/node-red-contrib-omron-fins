@@ -1,13 +1,19 @@
 {
     "name": "node-red-contrib-omron-fins",
-    "version": "0.0.3",
+    "version": "0.1.0",
+    "author": {
+        "name": "Steve-Mcl",
+        "email": "44235289+Steve-Mcl@users.noreply.github.com"
+    },
     "description": "OMRON FINS protocol functions 'Read' and 'write' for communicating with OMRON PLCs from node-red",
-    "dependencies": {},
+    "dependencies": {
+        "omron-fins": "github:Steve-Mcl/node-omron-fins"
+    },
     "keywords": [
         "node-red",
         "OMRON",
         "FINS"
-    ],
+    ], 
     "node-red": {
         "nodes": {
             "omronRead": "nodes/read.js",
