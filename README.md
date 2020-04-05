@@ -16,22 +16,12 @@ Credits to [Jozo132](https://github.com/Jozo132/node-omron-read.git) for his ori
 * node.js	(Background system for Node-RED)
 * Node-RED
 
-### Install for Windows
-Make a directory for the base files on the disk (somewhere secure) and open the created folder and open PowerShell (SHIFT + right_click) or "Git Bash Here" with right mouse inside the folder. Now enter the following:
-```sh
-cd c:/tempsourcefolder
-git clone https://...../node-red-contrib-omron-fins.git
+### Install
 
-cd ~/.node-red
-npm install c:/tempsourcefolder/node-red-contrib-omron-fins
+```sh
+npm install Steve-Mcl/node-red-contrib-omron-fins
 ```
 
 ### Usage
 
 * Restart Node-RED and there's the thingy now
-
-<img align="left" src=https://github.com/Jozo132/node-red-contrib-omron-fins/blob/master/images/example1.png />
-
-<img align="left" src=https://github.com/Jozo132/node-red-contrib-omron-fins/blob/master/images/example2.png />
-
-<img align="left" src=https://github.com/Jozo132/node-red-contrib-omron-fins/blob/master/images/example3.png />
