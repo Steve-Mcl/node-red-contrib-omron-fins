@@ -6,9 +6,6 @@
         "email": "44235289+Steve-Mcl@users.noreply.github.com"
     },
     "description": "OMRON FINS protocol functions 'Read' and 'write' for communicating with OMRON PLCs from node-red",
-    "dependencies": {
-        "omron-fins": "github:Steve-Mcl/node-omron-fins"
-    },
     "keywords": [
         "node-red",
         "OMRON",
@@ -21,5 +18,8 @@
             "omronConnection": "nodes/connection.js"
         }
     },
-    "license": "MIT"
+    "license": "MIT",
+    "dependencies": {
+        "omron-fins": "^0.1.2"
+    }
 }
