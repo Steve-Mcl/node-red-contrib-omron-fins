@@ -1,3 +1,3 @@
-var FinsClient = require('./fins_client.js');
+var FinsClient = require('omron-fins');
 
 exports.FinsClient = FinsClient;
