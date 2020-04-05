@@ -1,4 +1,4 @@
-var constants = require('../constants');
+var constants = require('omron-fins').FinsConstants;
 
 function isInt(x,def){
   var v;
