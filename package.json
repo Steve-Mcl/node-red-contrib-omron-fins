@@ -13,12 +13,13 @@
         "node-red",
         "OMRON",
         "FINS"
-    ], 
+    ],
     "node-red": {
         "nodes": {
             "omronRead": "nodes/read.js",
             "omronWrite": "nodes/write.js",
             "omronConnection": "nodes/connection.js"
         }
-    }
+    },
+    "license": "MIT"
 }
