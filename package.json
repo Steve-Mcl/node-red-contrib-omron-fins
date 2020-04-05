@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-omron-fins",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "author": {
         "name": "Steve-Mcl",
         "email": "44235289+Steve-Mcl@users.noreply.github.com"
@@ -20,6 +20,6 @@
     },
     "license": "MIT",
     "dependencies": {
-        "omron-fins": "^0.1.2"
+        "omron-fins": "^0.1.3"
     }
 }
