@@ -23,101 +23,100 @@ SOFTWARE.
 -->
 
 <script type="text/javascript">
-    RED.nodes.registerType('FINS Read', {
-        category: 'OMRON',
-        color: '#0090d4',
-        defaults: {
-            name: { value: "" },
-            connection: { type: "FINS Connection", required: true },
-            address: { value: "topic", validate: RED.validators.typedInput("addressType") },
-            addressType: { value: "msg" },
-            count: { value: 1, validate: RED.validators.typedInput("countType") },
-            countType: { value: "num" },
-            sign: { value: "" }
-        },
-        inputs: 1,
-        outputs: 1,
-        inputLabels: "Trigger request",
-        outputLabels: "Returned values",
-        align: "left",
-        icon: "read.png",
-        label: function () {
-            return this.name || "FINS Read";
-        },
-        oneditprepare: function () {
-            var node = this;
-            function setupTypedInput(varName, types, def) {
-                let varSel = '#node-input-' + varName;
-                let typeSel = varSel + 'Type';
-                let varVal = node[varName];
-                let typeVal = node[varName + 'Type'];
+  RED.nodes.registerType('FINS Read', {
+    category: 'OMRON',
+    color: '#0090d4',
+    defaults: {
+      name: { value: "" },
+      connection: { type: "FINS Connection", required: true },
+      address: { value: "topic", validate: RED.validators.typedInput("addressType") },
+      addressType: { value: "msg" },
+      count: { value: 1, validate: RED.validators.typedInput("countType") },
+      countType: { value: "num" },
+      sign: { value: "" }
+    },
+    inputs: 1,
+    outputs: 1,
+    inputLabels: "Trigger request",
+    outputLabels: "Returned values",
+    align: "left",
+    icon: "read.png",
+    label: function () {
+      return this.name || "FINS Read";
+    },
+    oneditprepare: function () {
+      var node = this;
+      function setupTypedInput(varName, types, def) {
+        let varSel = '#node-input-' + varName;
+        let typeSel = varSel + 'Type';
+        let varVal = node[varName];
+        let typeVal = node[varName + 'Type'];
 
-                if (typeVal == null || typeVal === 'none') {
-                    typeVal = def;
-                } else if (typeVal === 'string') {
-                    typeVal = "str";
-                } else if (typeVal === 'number') {
-                    typeVal = "num";
-                }
-                $(typeSel).val(typeVal);
-                $(varSel).typedInput({
-                    default: def,
-                    typeField: $(typeSel),
-                    types: types
-                });
-                $(varSel).typedInput('type', typeVal);
-            }
-
-            setupTypedInput('address', ["msg","flow","global","str"], 'msg');
-            setupTypedInput('count', ["msg","flow","global","num"], 'num');
+        if (typeVal == null || typeVal === 'none') {
+          typeVal = def;
+        } else if (typeVal === 'string') {
+          typeVal = "str";
+        } else if (typeVal === 'number') {
+          typeVal = "num";
         }
-    });
-</script>
+        $(typeSel).val(typeVal);
+        $(varSel).typedInput({
+          default: def,
+          typeField: $(typeSel),
+          types: types
+        });
+        $(varSel).typedInput('type', typeVal);
+      }
 
+      setupTypedInput('address', ["msg", "flow", "global", "str"], 'msg');
+      setupTypedInput('count', ["msg", "flow", "global", "num"], 'num');
+    }
+  });
+</script>
 <script type="text/html" data-template-name="FINS Read">
-    <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> <span data-i18n="read.label.name"> Name</span></label>
-        <input type="text" id="node-input-name" placeholder="Name">
-    </div>
-    <div class="form-row">
-        <label for="node-input-connection"><i class="icon-tag"></i><span data-i18n="read.label.connection"> Connection</span></label>
-        <input type="text" id="node-input-connection">
-    </div>
-    <div class="form-row">
-        <label for="node-input-address"><i class="icon-tag"></i> <span data-i18n="read.label.address"> Address</span></label>
-        <input type="text" id="node-input-address" placeholder="">
-        <input type="hidden" id="node-input-addressType">
-    </div>
-    <div class="form-row">
-        <label for="node-input-count"><i class="icon-tag"></i> <span data-i18n="read.label.count"> Count</span></label>
-        <input type="text" id="node-input-count" placeholder="">
-        <input type="hidden" id="node-input-countType">
-    </div>
-    <div class="form-row" title="leave blank to use payload.sign (default value of .sign='signed')">
-        <label for="node-input-sign"><i class="icon-tag"></i> <span data-i18n="read.label.sign"> Sign</span></label>
-        <select id="node-input-sign">
-            <option value=""></option>
-            <option value="signed">signed</option>
-            <option value="unsigned">unsigned</option>
-        </select>
-    </div>   
+  <div class="form-row">
+    <label for="node-input-name"><i class="icon-tag"></i> <span data-i18n="read.label.name"> Name</span></label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <div class="form-row">
+    <label for="node-input-connection"><i class="icon-tag"></i><span data-i18n="read.label.connection"> Connection</span></label>
+    <input type="text" id="node-input-connection">
+  </div>
+  <div class="form-row">
+    <label for="node-input-address"><i class="icon-tag"></i> <span data-i18n="read.label.address"> Address</span></label>
+    <input type="text" id="node-input-address" placeholder="">
+    <input type="hidden" id="node-input-addressType">
+  </div>
+  <div class="form-row">
+    <label for="node-input-count"><i class="icon-tag"></i> <span data-i18n="read.label.count"> Count</span></label>
+    <input type="text" id="node-input-count" placeholder="">
+    <input type="hidden" id="node-input-countType">
+  </div>
+  <div class="form-row" title="leave blank to use payload.sign (default value of .sign='signed')">
+    <label for="node-input-sign"><i class="icon-tag"></i> <span data-i18n="read.label.sign"> Sign</span></label>
+    <select id="node-input-sign">
+        <option value=""></option>
+        <option value="signed">signed</option>
+        <option value="unsigned">unsigned</option>
+    </select>
+  </div>   
 </script>
 
 <script type="text/html" data-help-name="FINS Read">
-    <h3>Inputs</h3>
-    <dl class="message-properties">
-        <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
-        <dd>The PLC connection</dd>
-        <dt class="required">Address<span class="property-type">string</span></dt>
-        <dd>PLC Memory Address</dd>
-        <dt class="required">Count<span class="property-type">number</span></dt>
-        <dd>Count of addresses to read</dd>
-        <p><i>INFO: To open / close the FINS Protocol connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS read / FINS write node.</i></p>
-    </dl>    
-    <p>Read data from an OMRON PLCs using FINS protocol</p>
-    <h3>Outputs</h3>
-    <dl class="message-properties">
-        <dt>payload <span class="property-type">array</span></dt>
-        <dd>the values read from the PLC.</dd>
-    </dl>
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
+    <dd>The PLC connection</dd>
+    <dt class="required">Address<span class="property-type">string</span></dt>
+    <dd>PLC Memory Address</dd>
+    <dt class="required">Count<span class="property-type">number</span></dt>
+    <dd>Count of addresses to read</dd>
+    <p><i>INFO: To open / close the FINS Protocol connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS read / FINS write node.</i></p>
+  </dl>    
+  <p>Read data from an OMRON PLCs using FINS protocol</p>
+  <h3>Outputs</h3>
+  <dl class="message-properties">
+    <dt>payload <span class="property-type">array</span></dt>
+    <dd>the values read from the PLC.</dd>
+  </dl>
 </script>

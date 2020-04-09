@@ -76,24 +76,24 @@ SOFTWARE.
 </script>
 
 <script type="text/html" data-template-name="FINS Write">
-    <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> <span data-i18n="write.label.name"> Name</span></label>
-        <input type="text" id="node-input-name" placeholder="Name">
-    </div>
-    <div class="form-row">
-      <label for="node-input-connection"><i class="icon-tag"></i><span data-i18n="write.label.connection"> Connection</span></label>
-      <input type="text" id="node-input-connection">
-    </div>
-    <div class="form-row">
-      <label for="node-input-address"><i class="icon-tag"></i> <span data-i18n="write.label.address"> Address</span></label>
-      <input type="text" id="node-input-address" placeholder="">
-      <input type="hidden" id="node-input-addressType">
-    </div>
-    <div class="form-row">
-      <label for="node-input-data"><i class="icon-tag"></i> <span data-i18n="write.label.data"> Data</span></label>
-      <input type="text" id="node-input-data" placeholder="">
-      <input type="hidden" id="node-input-dataType">
-    </div>
+  <div class="form-row">
+    <label for="node-input-name"><i class="icon-tag"></i> <span data-i18n="write.label.name"> Name</span></label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <div class="form-row">
+    <label for="node-input-connection"><i class="icon-tag"></i><span data-i18n="write.label.connection"> Connection</span></label>
+    <input type="text" id="node-input-connection">
+  </div>
+  <div class="form-row">
+    <label for="node-input-address"><i class="icon-tag"></i> <span data-i18n="write.label.address"> Address</span></label>
+    <input type="text" id="node-input-address" placeholder="">
+    <input type="hidden" id="node-input-addressType">
+  </div>
+  <div class="form-row">
+    <label for="node-input-data"><i class="icon-tag"></i> <span data-i18n="write.label.data"> Data</span></label>
+    <input type="text" id="node-input-data" placeholder="">
+    <input type="hidden" id="node-input-dataType">
+  </div>
 </script>
 
 <script type="text/html" data-help-name="FINS Write">
@@ -117,5 +117,5 @@ SOFTWARE.
         <li>comma separated list of integer (These will be written to the PLC starting at the address provided)</li>
     </ul>
     The count of data elements determines how many addresses are written. e.g. if you use [1,2,3,4,5] as the data source and D100 as the address, then D100 ~ D104 will be overwritten  
-    </p>
+  </p>
 </script>
