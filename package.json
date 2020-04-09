@@ -5,7 +5,7 @@
         "name": "Steve-Mcl",
         "email": "44235289+Steve-Mcl@users.noreply.github.com"
     },
-    "description": "OMRON FINS protocol functions 'Read' and 'write' for communicating with OMRON PLCs from node-red",
+    "description": "OMRON FINS Ethernet protocol functions 'Read' and 'write' for communicating with OMRON PLCs from node-red",
     "keywords": [
         "node-red",
         "OMRON",
