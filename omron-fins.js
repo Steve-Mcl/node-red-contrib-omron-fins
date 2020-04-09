@@ -1,3 +1,3 @@
-var FinsClient = require('omron-fins');
+var FinsClient = require('omron-fins').FinsClient;
 
 exports.FinsClient = FinsClient;
