@@ -16,8 +16,14 @@ Credits to [Jozo132](https://github.com/Jozo132/node-omron-read.git) for his ori
 
 ### Install
 
+From github...
 ```sh
 npm install Steve-Mcl/node-red-contrib-omron-fins
+```
+
+From NPM...
+```sh
+npm install node-red-contrib-omron-fins
 ```
 
 ### Usage
