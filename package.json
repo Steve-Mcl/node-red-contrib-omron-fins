@@ -9,7 +9,8 @@
     "keywords": [
         "node-red",
         "OMRON",
-        "FINS"
+        "FINS",
+        "PLC"
     ],
     "node-red": {
         "nodes": {
