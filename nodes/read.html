@@ -65,7 +65,7 @@ SOFTWARE.
           typeField: $(typeSel),
           types: types
         });
-        $(varSel).typedInput('type', typeVal);
+        return $(varSel).typedInput('type', typeVal);
       }
 
       setupTypedInput('address', ["msg", "flow", "global", "str"], 'msg');
