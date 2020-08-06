@@ -63,11 +63,16 @@ module.exports = function (RED) {
       });
 
       function finsReply(sequence) {
-        if(!sequence) {
+        if(!err && !sequence) {
           return;
         }
-        var origInputMsg = sequence.tag || {};
+        var origInputMsg = (sequence && sequence.tag) || {};
         try {
+          if (err || sequence.error) {
+            node.status({ fill: "red", shape: "ring", text: "error" });
+            node.error(err || sequence.error, origInputMsg);
+            return;
+          }  
           if (sequence.timeout) {
             node.status({ fill: "red", shape: "ring", text: "timeout" });
             node.error("timeout", origInputMsg);

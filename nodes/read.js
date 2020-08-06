@@ -65,23 +65,23 @@ module.exports = function (RED) {
         node.status({ fill: "yellow", shape: "dot", text: "initialised" });
       });
 
-      function finsReply(sequence) {
-        if(!sequence) {
+      function finsReply(err, sequence) {
+        if(!err && !sequence) {
           return;
         }
-        var cmdExpected = "0101";
-        var origInputMsg = sequence.tag || {};
+        var origInputMsg = (sequence && sequence.tag) || {};
         try {
+          if (err || sequence.error) {
+            node.status({ fill: "red", shape: "ring", text: "error" });
+            node.error(err || sequence.error, origInputMsg);
+            return;
+          }          
           if (sequence.timeout) {
             node.status({ fill: "red", shape: "ring", text: "timeout" });
             node.error("timeout", origInputMsg);
             return;
           }
-          if (sequence.error) {
-            node.status({ fill: "red", shape: "ring", text: "error" });
-            node.error("error", origInputMsg);
-            return;
-          }
+          var cmdExpected = "0101";
           if (sequence.response && sequence.sid != sequence.response.sid) {
             node.status({ fill: "red", shape: "dot", text: "Incorrect SID" });
             node.error(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg);
