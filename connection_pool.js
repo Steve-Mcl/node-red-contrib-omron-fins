@@ -73,7 +73,7 @@ module.exports = {
         var obj = {
 
           _instances: 0,
-          write: function (addr, data, callback) {
+          write: function (addr, data, callback, msg) {
             if (!client.connected && options.preventAutoReconnect) {
               throw new Error("Not connected!")
             }
@@ -81,14 +81,14 @@ module.exports = {
             if (!Array.isArray(data)) {
               throw new Error('data is not valid');
             }
-            var sid = client.write(addr, data, callback);
+            var sid = client.write(addr, data, callback, msg);
             return sid;
           },
-          read: function (addr, len, callback) {
+          read: function (addr, len, callback, msg) {
             if (!client.connected && options.preventAutoReconnect) {
               throw new Error("Not connected!")
             }
-            var sid = client.read(addr, parseInt(len), callback);
+            var sid = client.read(addr, parseInt(len), callback, msg);
             return sid;
           },
           getAutoConnect: function () {

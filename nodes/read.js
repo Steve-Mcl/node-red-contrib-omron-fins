@@ -35,100 +35,139 @@ module.exports = function (RED) {
     node.addressType = config.addressType || "msg";
     node.count = config.count || 1;
     node.countType = config.countType || "num";
-    node.sign = config.sign;
+    node.outputFormat = config.outputFormat || "buffer";
+    node.outputFormatType = config.outputFormatType || "list";
+    node.outputProperty = config.outputProperty || "payload";
+    node.outputPropertyType = config.outputPropertyType || "str";
     node.connectionConfig = RED.nodes.getNode(node.connection);
-    var context = node.context();
-    node.busy = false;
-    node.busyMonitor;
-    node.busyTimeMax = 1000;//TODO: Parameterise hard coded value!
-    var fins = require('../omron-fins.js');
+
     if (this.connectionConfig) {
       var options = Object.assign({}, node.connectionConfig.options);
       node.client = connection_pool.get(this.connectionConfig.port, this.connectionConfig.host, options);
       node.status({ fill: "yellow", shape: "ring", text: "initialising" });
 
-      this.client.on('error', function (error) {
-        console.log("Error: ", error);
+      this.client.on('error', function (error, seq) {
         node.status({ fill: "red", shape: "ring", text: "error" });
-        node.busy = false;
+        node.error(error, (seq && seq.tag ? tag : seq) );
+      });
+      this.client.on('full', function () {
+        node.throttleUntil = Date.now() + 1000;
+        node.warn("Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of reads and writes to this connection.");
+        node.status({ fill: "red", shape: "dot", text: "queue full" });
       });
       this.client.on('open', function (error) {
         node.status({ fill: "green", shape: "dot", text: "connected" });
       });
       this.client.on('close', function (error) {
         node.status({ fill: "red", shape: "dot", text: "not connected" });
-        node.busy = false;
       });
       this.client.on('initialised', function (error) {
         node.status({ fill: "yellow", shape: "dot", text: "initialised" });
       });
 
-      function myReply(msg) {
-        node.busy = false;//reset busy - allow node to be triggered
-        clearTimeout(node.busyMonitor);
-
-        if (msg.timeout) {
-          node.status({ fill: "red", shape: "ring", text: "timeout" });
-          node.error("timeout", msg);
-          var dbgmsg = {
-            f: 'myReply(msg)',
-            msg: msg,
-            error: 'timeout'
-          }
-          console.error(dbgmsg);
-          return;
-        }
-
-        if (node.sid && msg.response && node.sid != msg.response.sid) {
-          node.status({ fill: "red", shape: "dot", text: "Incorrect SID" });
-          node.error(`SID does not match! My SID: ${node.sid}, reply SID:${msg.response.sid}`, msg);
-          var dbgmsg = {
-            f: 'myReply(msg)',
-            msg: msg,
-            error: `SID does not match! My SID = ${node.sid}, reply SID = ${msg.response.sid}`
-          }
-          console.error(dbgmsg);
+      function finsReply(sequence) {
+        if(!sequence) {
           return;
         }
         var cmdExpected = "0101";
-        if (!msg || !msg.response || msg.response.endCode !== "0000" || msg.response.command !== cmdExpected) {
-          var ecd = "bad response";
-          if (msg.response && msg.response.command !== cmdExpected)
-            ecd = `Unexpected response. Expected command '${cmdExpected}' but received " ${msg.response.command}`
-          else if (msg.response && msg.response.endCodeDescription)
-            ecd = msg.response.endCodeDescription;
-          node.status({ fill: "red", shape: "dot", text: ecd });
-          node.error(`Response is NG! endCode: ${msg.response.endCode}, endCodeDescription:${msg.response.endCodeDescription}`, msg);
-          var dbgmsg = {
-            f: 'myReply(msg)',
-            msg: msg,
-            error: ecd
+        var origInputMsg = sequence.tag || {};
+        try {
+          if (sequence.timeout) {
+            node.status({ fill: "red", shape: "ring", text: "timeout" });
+            node.error("timeout", origInputMsg);
+            return;
           }
-          console.error(dbgmsg);
-          return;
-        }
+          if (sequence.error) {
+            node.status({ fill: "red", shape: "ring", text: "error" });
+            node.error("error", origInputMsg);
+            return;
+          }
+          if (sequence.response && sequence.sid != sequence.response.sid) {
+            node.status({ fill: "red", shape: "dot", text: "Incorrect SID" });
+            node.error(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg);
+            return;
+          }          
+          if (!sequence || !sequence.response || sequence.response.endCode !== "0000" || sequence.response.command !== cmdExpected) {
+            var ecd = "bad response";
+            if (sequence.response && sequence.response.command !== cmdExpected)
+              ecd = `Unexpected response. Expected command '${cmdExpected}' but received " ${sequence.response.command}`;
+            else if (sequence.response && sequence.response.endCodeDescription)
+              ecd = sequence.response.endCodeDescription;
+            node.status({ fill: "red", shape: "dot", text: ecd });
+            node.error(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg);
+            return;
+          }
 
+          var kvMaker = function (pkt) {
+            let kvs = {};
+            if (pkt.response.values) {
+              let iWD = 0;
+              for (let x in pkt.response.values) {
+                let item_addr = node.client.decodedAddressToString(pkt.request.address, iWD, 0);
+                kvs[item_addr] = pkt.response.values[x];
+                iWD++;
+              }
+            }
+            return kvs;
+          };
 
-        var outDetail = {};
-        var iWD = 0;
-        if (msg.response.values) {
-          if (node.sign == "unsigned") {
-            msg.response.values = Uint16Array.from(msg.response.values)
+          var outputFormat = RED.util.evaluateNodeProperty(node.outputFormat, node.outputFormatType, node, origInputMsg);
+          var value;
+          switch (outputFormat) {
+            case "signed":
+              value = sequence.response.values;
+              break;
+            case "unsigned":
+              sequence.response.values = Uint16Array.from(sequence.response.values);
+              value = sequence.response.values;
+              break;
+            case "signedkv":
+              value = kvMaker(sequence);
+              break;
+            case "unsignedkv":
+              sequence.response.values = Uint16Array.from(sequence.response.values);
+              value = kvMaker(sequence);
+              break;
+            default: //buffer
+              value = sequence.response.buffer;
+              break;
           }
-          for (var x in msg.response.values) {
-            //var buff_address = config.address.charAt(0) + ":" + String(parseInt(config.address.slice(1)) + x);
-            var buff_address = node.client.decodedAddressToString(msg.request.address, iWD, 0)
-            var buff_value = String(msg.response.values[x]);
-            outDetail[buff_address] = buff_value;
-            iWD++;
-          }
+
+          //set the output property
+          var outputProperty = RED.util.evaluateNodeProperty(node.outputProperty, node.outputPropertyType, node, origInputMsg);
+          RED.util.setObjectProperty(origInputMsg, outputProperty, value, true);
+
+          //include additional detail in msg.fins
+          origInputMsg.fins = {};
+          origInputMsg.fins.request = {
+            address: sequence.request.address,
+            count: sequence.request.count,
+            sid: sequence.request.sid,
+          };
+
+          origInputMsg.fins.response = sequence.response;
+          origInputMsg.fins.stats = sequence.stats;
+          origInputMsg.fins.createTime = sequence.createTime;
+          origInputMsg.fins.replyTime = sequence.replyTime;
+          origInputMsg.fins.timeTaken = sequence.timeTaken;
+
+          node.status({ fill: "green", shape: "dot", text: "done" });
+          node.send(origInputMsg);
+        } catch (error) {
+          node.status({ fill: "red", shape: "ring", text: "error" });
+          node.error(error, origInputMsg);
         }
-        var newMsg = { payload: msg.response.values, request: msg.request, response: msg.response, name: node.name, topic: node.topic, data: outDetail };
-        node.status({ fill: "green", shape: "dot", text: "done" });
-        node.send(newMsg);
       }
 
+      this.on('close', function (done) {
+        if (done) done();
+      });
+
       this.on('input', function (msg) {
+        if (node.throttleUntil) {
+          if (node.throttleUntil > Date.now()) return; //throttled
+          node.throttleUntil = null; //throttle time over
+        }
         node.status({});//clear status
 
         if (msg.disconnect === true || msg.topic === 'disconnect') {
@@ -138,9 +177,6 @@ module.exports = function (RED) {
           node.connection.connect();
           return;
         }
-
-        if (node.busy)
-          return;//TODO: Consider queueing inputs?
 
         /* ****************  Node status **************** */
         var nodeStatusError = function (err, msg, statusText) {
@@ -152,32 +188,13 @@ module.exports = function (RED) {
             node.error(statusText, msg);
           }
           node.status({ fill: "red", shape: "dot", text: statusText });
-        }
-        var nodeStatusParameterError = function (err, msg, propName) {
-          nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value")
-        }
+        };
 
         /* ****************  Get address Parameter **************** */
-        var address;
-        RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg, (err, value) => {
-          if (err) {
-            nodeStatusParameterError(err, msg, "address");
-            return;//halt flow!
-          } else {
-            address = value;
-          }
-        });
+        var address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
 
         /* ****************  Get count Parameter **************** */
-        var count;
-        RED.util.evaluateNodeProperty(node.count, node.countType, node, msg, (err, value) => {
-          if (err) {
-            nodeStatusParameterError(err, msg, "count");
-            return;//halt flow!
-          } else {
-            count = value;
-          }
-        });
+        var count = RED.util.evaluateNodeProperty(node.count, node.countType, node, msg);
 
         if (address == "") {
           nodeStatusError(null, msg, "address is empty");
@@ -188,29 +205,16 @@ module.exports = function (RED) {
           nodeStatusError(null, msg, "count is not valid");
           return;
         }
-        //if node
-        if (!config.sign && msg.payload.sign) {
-          node.sign = "unsigned";
-        }
 
         try {
-          node.status({ fill: "yellow", shape: "ring", text: "read" });
-          node.busy = true;
-          if (node.busyTimeMax) {
-            node.busyMonitor = setTimeout(function () {
-              if (node.busy) {
-                nodeStatusError(null, msg, "timeout")
-                node.busy = false;
-                return;
-              }
-            }, node.busyTimeMax);
+          let sid = this.client.read(address, parseInt(count), finsReply, msg);
+          if (sid > 0) {
+            node.status({ fill: "yellow", shape: "ring", text: "reading" });
           }
-          node.sid = this.client.read(address, parseInt(count), myReply);
         } catch (error) {
           node.sid = null;
-          node.busy = false;
-          nodeStatusError(error, msg, "Error")
-          var dbgmsg = {
+          nodeStatusError(error, msg, "error");
+          let dbgmsg = {
             info: "read.js-->on 'input'",
             connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
             address: address,
@@ -224,7 +228,7 @@ module.exports = function (RED) {
       node.status({ fill: "green", shape: "ring", text: "ready" });
 
     } else {
-      nodeStatusError(null, msg, "configuration not setup")
+      node.status({ fill: "red", shape: "dot", text: "configuration not setup" });
     }
   }
   RED.nodes.registerType("FINS Read", omronRead);
@@ -232,6 +236,6 @@ module.exports = function (RED) {
     if (this.client) {
       this.client.disconnect();
     }
-  }
+  };
 };
 

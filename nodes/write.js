@@ -24,8 +24,6 @@ SOFTWARE.
 
 module.exports = function (RED) {
   var connection_pool = require("../connection_pool.js");
-  var util = require("util");
-
   function omronWrite(config) {
     RED.nodes.createNode(this, config);
     var node = this;
@@ -35,12 +33,9 @@ module.exports = function (RED) {
     node.addressType = config.addressType || "msg";
     node.data = config.data || "payload";
     node.dataType = config.dataType || "msg";
+    node.outputProperty = config.outputProperty || "payload";
+    node.outputPropertyType = config.outputPropertyType || "str";
     node.connectionConfig = RED.nodes.getNode(node.connection);
-    var context = node.context();
-    node.sid = "";
-    node.busy = false;
-    node.busyTimeMax = 1000;//TODO: Parameterise hard coded value!
-    var fins = require('../omron-fins.js');
     if (this.connectionConfig) {
 
       node.status({ fill: "yellow", shape: "ring", text: "initialising" });
@@ -50,6 +45,12 @@ module.exports = function (RED) {
       this.client.on('error', function (error) {
         console.log("Error: ", error);
         node.status({ fill: "red", shape: "ring", text: "error" });
+        node.error(error, (seq && seq.tag ? tag : seq) );
+      });
+      this.client.on('full', function () {
+        node.status({ fill: "red", shape: "dot", text: "queue full" });
+        node.throttleUntil = Date.now() + 1000;
+        node.warn("Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of reads and writes to this connection.");
       });
       this.client.on('open', function (error) {
         node.status({ fill: "green", shape: "dot", text: "connected" });
@@ -61,59 +62,68 @@ module.exports = function (RED) {
         node.status({ fill: "yellow", shape: "dot", text: "initialised" });
       });
 
-      function myReply(msg) {
-        node.busy = false;//reset busy - allow node to be triggered
-        clearTimeout(node.busyMonitor);
-
-        if (msg.timeout) {
-          node.status({ fill: "red", shape: "ring", text: "timeout" });
-          node.error("timeout");
-          var dbgmsg = {
-            f: 'myReply(msg)',
-            msg: msg,
-            error: 'timeout'
-          }
-          console.error(dbgmsg);
+      function finsReply(sequence) {
+        if(!sequence) {
           return;
         }
-
-        if (node.sid && msg.response && node.sid != msg.response.sid) {
-          node.status({ fill: "red", shape: "dot", text: "Incorrect SID" });
-          node.error(`SID does not match! My SID: ${node.sid}, reply SID:${msg.response.sid}`);
-          var dbgmsg = {
-            f: 'myReply(msg)',
-            msg: msg,
-            error: `SID does not match! My SID = ${node.sid}, reply SID = ${msg.response.sid}`
+        var origInputMsg = sequence.tag || {};
+        try {
+          if (sequence.timeout) {
+            node.status({ fill: "red", shape: "ring", text: "timeout" });
+            node.error("timeout", origInputMsg);
+            return;
           }
-          console.error(dbgmsg);
-          return;
-        }
-        var cmdExpected = "0102";
-        if (!msg || !msg.response || msg.response.endCode !== "0000" || msg.response.command !== cmdExpected) {
-          var ecd = "bad response";
-          if (msg.response && msg.response.command !== cmdExpected)
-            ecd = `Unexpected response. Expected command '${cmdExpected}' but received " ${msg.response.command}`
-          else if (msg.response && msg.response.endCodeDescription)
-            ecd = msg.response.endCodeDescription;
-          node.status({ fill: "red", shape: "dot", text: ecd });
-          node.error(`Response is NG! endCode: ${msg.response.endCode}, endCodeDescription:${msg.response.endCodeDescription}`);
-          var dbgmsg = {
-            f: 'myReply(msg)',
-            msg: msg,
-            error: ecd
+          if (sequence.response && sequence.sid != sequence.response.sid) {
+            node.status({ fill: "red", shape: "dot", text: "Incorrect SID" });
+            node.error(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg);
+            return;
           }
-          console.error(dbgmsg);
-          return;
+          var cmdExpected = "0102";
+          if (!sequence || !sequence.response || sequence.response.endCode !== "0000" || sequence.response.command !== cmdExpected) {
+            var ecd = "bad response";
+            if (sequence.response && sequence.response.command !== cmdExpected)
+              ecd = `Unexpected response. Expected command '${cmdExpected}' but received " ${sequence.response.command}`;
+            else if (sequence.response && sequence.response.endCodeDescription)
+              ecd = sequence.response.endCodeDescription;
+            node.status({ fill: "red", shape: "dot", text: ecd });
+            node.error(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg);
+            return;
+          }
+
+          //set the output property
+          var outputProperty = RED.util.evaluateNodeProperty(node.outputProperty, node.outputPropertyType, node, origInputMsg);
+          RED.util.setObjectProperty(origInputMsg, outputProperty, sequence.sid || 0, true);
+
+          //include additional detail in msg.fins
+          origInputMsg.fins = {};
+          origInputMsg.fins.request = {
+            address: sequence.request.address,
+            dataToBeWritten: sequence.request.dataToBeWritten,
+            sid: sequence.request.sid,
+          };
+          origInputMsg.fins.response = sequence.response;
+          origInputMsg.fins.stats = sequence.stats;
+          origInputMsg.fins.createTime = sequence.createTime;
+          origInputMsg.fins.replyTime = sequence.replyTime;
+          origInputMsg.fins.timeTaken = sequence.timeTaken;
+
+          node.status({ fill: "green", shape: "dot", text: "done" });
+          node.send(origInputMsg);
+        } catch (error) {
+          node.status({ fill: "red", shape: "ring", text: "error" });
+          node.error(error, origInputMsg);
         }
-
-
-        //TODO: consider payload - what to send! True? SID? IDK!
-        var newMsg = { payload: node.sid, request: msg.request, response: msg.response, name: node.name, topic: node.topic };
-
-        node.status({ fill: "green", shape: "dot", text: "done" });
-        node.send(newMsg);
       }
+
+      this.on('close', function (done) {
+        if (done) done();
+      });
+
       this.on('input', function (msg) {
+        if (node.throttleUntil) {
+          if (node.throttleUntil > Date.now()) return; //throttled
+          node.throttleUntil = null; //throttle time over
+        }
         node.status({});//clear status
 
         if (msg.disconnect === true || msg.topic === 'disconnect') {
@@ -123,9 +133,6 @@ module.exports = function (RED) {
           node.client.connect();
           return;
         }
-
-        if (node.busy)
-          return;//TODO: Consider queueing inputs?
 
         /* ****************  Node status **************** */
         var nodeStatusError = function (err, msg, statusText) {
@@ -137,25 +144,17 @@ module.exports = function (RED) {
             node.error(statusText, msg);
           }
           node.status({ fill: "red", shape: "dot", text: statusText });
-        }
+        };
         var nodeStatusParameterError = function (err, msg, propName) {
-          nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value")
-        }
+          nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value");
+        };
 
         /* ****************  Get address Parameter **************** */
-        var address;
-        RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg, (err, value) => {
-          if (err) {
-            nodeStatusParameterError(err, msg, "address");
-            return;//halt flow!
-          } else {
-            address = value;
-          }
-        });
+        var address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
 
         /* ****************  Get data Parameter **************** */
         var data;
-        RED.util.evaluateNodeProperty(node.data, node.dataType, node, msg, (err, value) => {
+        RED.util.evaluateNodeProperty(node.data, node.dataType, node, msg, function (err, value) {
           if (err) {
             nodeStatusParameterError(err, msg, "data");
             return;//halt flow!
@@ -174,25 +173,13 @@ module.exports = function (RED) {
         }
 
         try {
-          node.status({ fill: "yellow", shape: "ring", text: "write" });
-          node.busy = true;
-          if (node.busyTimeMax) {
-            this.busyMonitor = setTimeout(function () {
-              if (node.busy) {
-                node.status({ fill: "red", shape: "ring", text: "timeout" });
-                node.error("timeout");
-                node.busy = false;
-                return;
-              }
-            }, node.busyTimeMax);
-          }
-          node.sid = this.client.write(address, data, myReply);
+          var sid = this.client.write(address, data, finsReply, msg);
+          if (sid > 0) node.status({ fill: "yellow", shape: "ring", text: "write" });
         } catch (error) {
-          node.sid = null;
-          node.busy = false;
-          nodeStatusError(error, msg, "Error")
+
+          nodeStatusError(error, msg, "error");
           var dbgmsg = {
-            info: "write.js-->on 'input' - try this.client.write(address, data, myReply)",
+            info: "write.js-->on 'input' - try this.client.write(address, data, finsReply)",
             connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
             address: address,
             data: data,
@@ -206,7 +193,7 @@ module.exports = function (RED) {
       node.status({ fill: "green", shape: "ring", text: "ready" });
 
     } else {
-      nodeStatusError(null, msg, "configuration not setup")
+      node.status({ fill: "red", shape: "dot", text: "configuration not setup" });
     }
 
   }
@@ -215,6 +202,6 @@ module.exports = function (RED) {
     if (this.client) {
       this.client.disconnect();
     }
-  }
+  };
 };
 

@@ -30,10 +30,12 @@ SOFTWARE.
     defaults: {
       name: { value: "" },
       connection: { type: "FINS Connection", required: true },
-      address: { value: "topic", validate: RED.validators.typedInput("addressType") },
       addressType: { value: "msg" },
+      address: { value: "topic", validate: RED.validators.typedInput("addressType") },
+      dataType: { value: "msg" },
       data: { value: "payload", validate: RED.validators.typedInput("dataType") },
-      dataType: { value: "msg" }
+      msgPropertyType: { value: "str" },
+      msgProperty: { value: "payload", validate: RED.validators.typedInput("msgPropertyType") },
     },
     inputs: 1,
     outputs: 1,
@@ -71,6 +73,7 @@ SOFTWARE.
 
       setupTypedInput('address', ["msg","flow","global","str"], 'msg');
       setupTypedInput('data', ["msg","flow","global","num", "json"], 'msg');
+      setupTypedInput('msgProperty', ["msg"], 'msg');
     }
   });
 </script>
@@ -94,28 +97,56 @@ SOFTWARE.
     <input type="hidden" id="node-input-dataType">
     <input style="width:70%" type="text" id="node-input-data" placeholder="">
   </div>
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="write.label.msgProperty"> Output property</span></label>
+    <input type="hidden" id="node-input-msgPropertyType">
+    <input style="width:70%" type="text" id="node-input-msgProperty" placeholder="payload">
+  </div>    
 </script>
 
 <script type="text/html" data-help-name="FINS Write">
-  <h3>Inputs</h3>
+  <p>Write data to an OMRON PLC using FINS protocol</p>
+  <h3>Properties</h3>
   <dl class="message-properties">
     <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
     <dd>The PLC connection</dd>
     <dt class="required">Address<span class="property-type">string</span></dt>
-    <dd>PLC Memory Address</dd>
+    <dd>PLC Memory Address. Depending on the PLC MODE selected in the connection, the address will use the PLC standard addressing format. Some examples...
+      <ul>
+        <li>CIO2000 - Core IO 2000</li>
+        <li>D100 - Data Memory 100</li>
+        <li>E0_200 - Extended Data Memory Bank 0, register 200</li>
+        <li>H10 - Holding Relay 10</li>
+        <li>W500 - Work Area 500</li>
+        <li>A264 - Auxiliary Area 264</li>
+        <li>DR10 - Data Register 10</li>
+        <li>DR10 - Data Register 10</li>
+        <li>IR0 - Index Register 0</li>
+        <li>T50 - Timer 50 PV</li>
+        <li>C50 - Counter 50 PV</li>
+      </ul>
+    </dd>
     <dt class="required">Data<span class="property-type">number | string</span></dt>
-    <dd>Data to write to tthe PLC</dd>
-    <p><i>INFO: To open / close the FINS Protocol connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS read / FINS write node.</i></p>
+    <dd>Data to write to the PLC</dd>
   </dl>
-  <p>Write data to an OMRON PLC using FINS protocol</p>
+
+  <h3>Output</h3>
+  <p>
+    Upon success, the SID (Sequence ID) will be sent in <code>msg.payload</code>. This should be a number between 1 and 254. <br>
+    Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
+  </p>  
   <h3>Details</h3>
-  <p>data must be one of the following...
+  <p>
+    Incomming <code>data</code> must be one of the following...
     <ul>
         <li>integer (This will be written to the address provided)</li>
         <li>string containing an integer (This will be written to the address provided)</li>
         <li>array of integer (These will be written to the PLC starting at the address provided)</li>
         <li>comma separated list of integer (These will be written to the PLC starting at the address provided)</li>
     </ul>
-    The count of data elements determines how many addresses are written. e.g. if you use [1,2,3,4,5] as the data source and D100 as the address, then D100 ~ D104 will be overwritten  
+    The count of data elements determines how many addresses are written. e.g. if you use [1,2,3,4,5] as the data source and D100 as the address, then D100 ~ D104 will be modified.  
   </p>
+  <h3>Connection control</h3>
+  <p><i>INFO: To open / close the FINS connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS read / FINS write node.</i></p>
+
 </script>

@@ -29,11 +29,14 @@ SOFTWARE.
     defaults: {
       name: { value: "" },
       connection: { type: "FINS Connection", required: true },
-      address: { value: "topic", validate: RED.validators.typedInput("addressType") },
       addressType: { value: "msg" },
-      count: { value: 1, validate: RED.validators.typedInput("countType") },
+      address: { value: "topic", validate: RED.validators.typedInput("addressType") },
       countType: { value: "num" },
-      sign: { value: "" }
+      count: { value: 1, validate: RED.validators.typedInput("countType") },
+      msgPropertyType: { value: "msg" },
+      msgProperty: { value: "payload", validate: RED.validators.typedInput("msgPropertyType") },
+      outputFormatType: { value: "list" },
+      outputFormat: { value: "buffer", validate: RED.validators.typedInput("outputFormatType") },
     },
     inputs: 1,
     outputs: 1,
@@ -70,6 +73,23 @@ SOFTWARE.
 
       setupTypedInput('address', ["msg", "flow", "global", "str"], 'msg');
       setupTypedInput('count', ["msg", "flow", "global", "num"], 'num');
+      setupTypedInput('msgProperty', ["msg"], 'msg');
+      var msgPropertyField = $("#node-input-msgProperty").typedInput({types:[{label:"msg.", value:"str"}]});
+      var outputListOpt = {
+          value:"list",
+          label:"output", 
+          title: "output", 
+          icon:"fa fa-sign-out",
+          options:[
+          { label: "buffer", value: 'buffer', title: 'Send a buffer in the msg property specified by "Output property"'},
+          { label: "Signed Array (int16)", value: 'signed', title: 'Send an array of 16 bit signed values in the msg property specified by "Output property"'},
+          { label: "Unsigned Array (uint16)", value: 'unsigned', title: 'Send an array of 16 bit unsigned values in the msg property specified by "Output property"'},
+          { label: "Signed key/value (int16)", value: 'signedkv', title: 'Send an object with PLC address keys and 16 bit signed values in the msg property specified by "Output property"'},
+          { label: "Unsigned key/value (uint16)", value: 'unsignedkv', title: 'Send an object with PLC address keys and 16 bit unsigned values in the msg property specified by "Output property"'},
+          ],
+          default: "buffer"
+      }
+      var outputFormatField = setupTypedInput('outputFormat', [outputListOpt, 'msg', 'flow', 'global', 'env'], 'list');//specification
     }
   });
 </script>
@@ -92,31 +112,64 @@ SOFTWARE.
     <input style="width:70%" type="text" id="node-input-count" placeholder="">
     <input type="hidden" id="node-input-countType">
   </div>
-  <div class="form-row" title="leave blank to use payload.sign (default value of .sign='signed')">
-    <label for="node-input-sign"><i class="icon-tag"></i> <span data-i18n="read.label.sign"> Sign</span></label>
-    <select id="node-input-sign">
-        <option value=""></option>
-        <option value="signed">signed</option>
-        <option value="unsigned">unsigned</option>
-    </select>
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.msgProperty"> Output property</span></label>
+    <input type="hidden" id="node-input-msgPropertyType">
+    <input style="width:70%" type="text" id="node-input-msgProperty" placeholder="payload">
+  </div>  
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-outputFormat"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.outputFormat"> Output</span></label>
+    <input type="hidden" id="node-input-outputFormatType">
+    <input style="width:70%" type="text" id="node-input-outputFormat" placeholder="">
   </div>   
 </script>
 
 <script type="text/html" data-help-name="FINS Read">
-  <h3>Inputs</h3>
+  <p>Read data from an OMRON PLCs using FINS protocol</p>
+  <h3>Properties</h3>
   <dl class="message-properties">
     <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
     <dd>The PLC connection</dd>
     <dt class="required">Address<span class="property-type">string</span></dt>
-    <dd>PLC Memory Address</dd>
+    <dd>PLC Memory Address. Depending on the PLC MODE selected in the connection, the address will use the PLC standard addressing format. Some examples...
+      <ul>
+        <li>CIO2000 - Core IO 2000</li>
+        <li>D100 - Data Memory 100</li>
+        <li>E0_200 - Extended Data Memory Bank 0, register 200</li>
+        <li>H10 - Holding Relay 10</li>
+        <li>W500 - Work Area 500</li>
+        <li>A264 - Auxiliary Area 264</li>
+        <li>DR10 - Data Register 10</li>
+        <li>DR10 - Data Register 10</li>
+        <li>IR0 - Index Register 0</li>
+        <li>T50 - Timer 50 PV</li>
+        <li>C50 - Counter 50 PV</li>
+      </ul>
+    </dd>
     <dt class="required">Count<span class="property-type">number</span></dt>
     <dd>Count of addresses to read</dd>
-    <p><i>INFO: To open / close the FINS Protocol connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS read / FINS write node.</i></p>
+    <dt class="required">Output property<span class="property-type">string</span></dt>
+    <dd>Specify where the result should be written</dd>
+    <dt class="required">Output<span class="property-type">string</span></dt>
+    <dd>Specify the type of result required.
+      <ul>
+        <li>Buffer: Sends a buffer. To automate this option, use the string value <code>buffer</code></li>
+        <li>Signed Array (int16): Sends an array of 16 bit signed values in the msg property specified by "Output property". To automate this option, use the string value <code>signed</code></li>
+        <li>Unsigned Array (uint16): Sends an array of 16 bit unsigned values in the msg property specified by "Output property". To automate this option, use the string value <code>unsigned</code></li>
+        <li>Signed key/value (int16): Sends an object with PLC address keys and 16 bit signed values in the msg property specified by "Output property". To automate this option, use the string value <code>signedkv</code></li>
+        <li>Unsigned key/value (uint16): Sends an object with PLC address keys and 16 bit unsigned values in the msg property specified by "Output property". To automate this option, use the string value <code>unsignedkv</code></li>
+      </ul>
+    </dd>
   </dl>    
-  <p>Read data from an OMRON PLCs using FINS protocol</p>
-  <h3>Outputs</h3>
+  <h3>Output</h3>
   <dl class="message-properties">
     <dt>payload <span class="property-type">array</span></dt>
-    <dd>the values read from the PLC.</dd>
+    <dd>
+      The values read from the PLC.<br>
+      Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
+    </dd>
   </dl>
+  <h3>Connection control</h3>
+  <p><i>INFO: To open / close the FINS connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS read / FINS write node.</i></p>
+
 </script>
