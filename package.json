@@ -21,6 +21,6 @@
     },
     "license": "MIT",
     "dependencies": {
-        "omron-fins": "^0.2.0"
+        "omron-fins": "^0.2.0-beta.0"
     }
 }
