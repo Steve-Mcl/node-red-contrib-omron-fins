@@ -4,7 +4,7 @@ node-red-contrib-omron-fins
 ## Overview
 This is a Node-RED node module to directly interface with OMRON PLCs over FINS Ethernet protocol. 
 For now it only supports READ and WRITE operations over FINS UDP.
-Works with CV, CS, CJ, NJ and NJ PLCs (the ones with FINS support)
+Works with CV, CS, CJ, NJ and NX PLCs (the ones with FINS support)
 
 ## Version Update Notes
 This release (and possibly future releases upto V1.0.0) has breaking changes.
