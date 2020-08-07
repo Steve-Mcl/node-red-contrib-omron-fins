@@ -62,7 +62,7 @@ module.exports = function (RED) {
         node.status({ fill: "yellow", shape: "dot", text: "initialised" });
       });
 
-      function finsReply(sequence) {
+      function finsReply(err, sequence) {
         if(!err && !sequence) {
           return;
         }
