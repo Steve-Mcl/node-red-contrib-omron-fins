@@ -139,6 +139,7 @@ module.exports = function (RED) {
 
           //include additional detail in msg.fins
           origInputMsg.fins = {};
+          origInputMsg.fins.name = node.name; //node name for user logging / routing
           origInputMsg.fins.request = {
             address: sequence.request.address,
             count: sequence.request.count,
