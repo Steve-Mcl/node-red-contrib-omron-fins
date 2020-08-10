@@ -33,8 +33,8 @@ module.exports = function (RED) {
     node.addressType = config.addressType || "msg";
     node.data = config.data || "payload";
     node.dataType = config.dataType || "msg";
-    node.outputProperty = config.outputProperty || "payload";
-    node.outputPropertyType = config.outputPropertyType || "str";
+    node.msgProperty = config.msgProperty || "payload";
+    node.msgPropertyType = config.msgPropertyType || "str";
     node.connectionConfig = RED.nodes.getNode(node.connection);
     if (this.connectionConfig) {
 
@@ -96,8 +96,7 @@ module.exports = function (RED) {
           }
 
           //set the output property
-          var outputProperty = RED.util.evaluateNodeProperty(node.outputProperty, node.outputPropertyType, node, origInputMsg);
-          RED.util.setObjectProperty(origInputMsg, outputProperty, sequence.sid || 0, true);
+          RED.util.setObjectProperty(origInputMsg, node.msgProperty, sequence.sid || 0, true);
 
           //include additional detail in msg.fins
           origInputMsg.fins = {};

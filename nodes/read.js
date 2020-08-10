@@ -37,8 +37,8 @@ module.exports = function (RED) {
     node.countType = config.countType || "num";
     node.outputFormat = config.outputFormat || "buffer";
     node.outputFormatType = config.outputFormatType || "list";
-    node.outputProperty = config.outputProperty || "payload";
-    node.outputPropertyType = config.outputPropertyType || "str";
+    node.msgProperty = config.msgProperty || "payload";
+    node.msgPropertyType = config.msgPropertyType || "str";
     node.connectionConfig = RED.nodes.getNode(node.connection);
 
     if (this.connectionConfig) {
@@ -134,8 +134,7 @@ module.exports = function (RED) {
           }
 
           //set the output property
-          var outputProperty = RED.util.evaluateNodeProperty(node.outputProperty, node.outputPropertyType, node, origInputMsg);
-          RED.util.setObjectProperty(origInputMsg, outputProperty, value, true);
+          RED.util.setObjectProperty(origInputMsg, node.msgProperty, value, true);
 
           //include additional detail in msg.fins
           origInputMsg.fins = {};
