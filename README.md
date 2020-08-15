@@ -4,16 +4,18 @@ node-red-contrib-omron-fins
 ## Overview
 This is a Node-RED node module to directly interface with OMRON PLCs over FINS Ethernet protocol. 
 For now it only supports READ and WRITE operations over FINS UDP.
-Works with CV, CS, CJ, NJ and NX PLCs (the ones with FINS support)
+Tested on CV, CS, CJ, NJ and NX PLCs (the ones with FINS support)
 
 ## Version Update Notes
-This release (and possibly future releases upto V1.0.0) has breaking changes.
-Where possible, I make every attempt to keep things compatible, but as node-red improves (typedInput widgets for example) I too improve this node to make things easier or better. And sometimes, it becomes plain obvious a wrong descision was made - it happens :)
+This release (and possibly future releases up to V1.0.0) has breaking changes.
+Where possible, I make every attempt to keep things compatible, but as node-red improves (typedInput widgets for example) I too improve this node to make things easier or better. And sometimes, it becomes plain obvious a wrong decision was made that needs to be rectified before it becomes too late to change - it happens :)
 Semantic Versioning 2.0.0 will be followed after V1 however for now, where you see `V0.x.y`...
 * `x` = major / minor change
 * `y` = patch / bugfix
 
-
+## Tips
+* On a reasonable VM, I have managed to achieve polling speeds less than 10ms (100+ reads per second) HOWEVER this really taxes NODE and Node-red. Through usage and testing, this node works very well polling 10 times per second (100ms poll time). This is often more than enough for UI type applications
+* Where possible, group your items together in the PLC and do 1 large read as opposed to multiple small reads.  Reading 20 WDs from 1 location is much faster than reading 20 single items. An additional benefit of reading multiple items in one poll is the data is consistent (i.e. all values were read at on the same PLC poll) 
 
 ## Prerequisites
 
@@ -85,7 +87,7 @@ SA2 | 0
 #### Other notes:
 * If the subnet mask is bigger than /24 (e.g. is bigger than 255.255.255.0) you might need to enter the IP and NODE number (of the node-red server) into the FINS **IP address table** so that the PLC understands which IP to respond to when responding to the SA1 NODE number
 * FINS works with PLC Addresses.  NJ and NX PLCs do NOT have direct addresses to addresses like DM or E0_, E1_. 
-   * In order to communicate to a variable in N Series PLCs via FINS you must create a Global TAG and set its `AT` property. E.G. If you want to read and write 40 WDs from E0_9000 ~ E0_9039 then you need to add a TAG like this  `TAG_NAME      ARRAY[0..39] Of WORD        %E0_9000`
+   * In order to use C Series addresses in an N Series PLC, you will need to create a variable in the PLC and set its `AT` property. E.G. If you want to read and write 40 WDs from E0_9000 ~ E0_9039 then you need to add a TAG like this  `TAG_NAME      ARRAY[0..39] Of WORD        %E0_9000`
    ![image](https://user-images.githubusercontent.com/44235289/85562713-a619ad80-b624-11ea-971b-dc22754d7cf1.png)
    
 
