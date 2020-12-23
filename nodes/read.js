@@ -171,10 +171,10 @@ module.exports = function (RED) {
         node.status({});//clear status
 
         if (msg.disconnect === true || msg.topic === 'disconnect') {
-          node.connection.closeConnection();
+          node.client.closeConnection();
           return;
         } else if (msg.connect === true || msg.topic === 'connect') {
-          node.connection.connect();
+          node.client.connect();
           return;
         }
 
