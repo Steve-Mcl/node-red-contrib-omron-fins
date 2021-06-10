@@ -82,6 +82,10 @@ SOFTWARE.
 
 <script type="text/html" data-help-name="FINS Connection">
   <p>FINS Connection</p>
+    <h3>Notes</h3>
+      <dt>Environment Variables</dt>
+      <dd>Text fields (Host, Port, ICF, DNA, DA1, DA2, SNA, SA1, SA2) can be environment variables e.g. ${PLC_PORT}</dd> 
+
     <h3>Details</h3>
 
       <dt>ICF</dt>
@@ -130,7 +134,7 @@ SOFTWARE.
     defaults: {
       name: { value: "" },
       host: { value: "192.168.0.1", required: true },
-      port: { value: 9600, required: true, validate: RED.validators.number() },
+      port: { value: 9600, required: true/*, validate: RED.validators.number()*/ },
       MODE: { value: "CSCJ"},
       ICF: { value: 0x80},//, validate: RED.validators.number() },
       DNA: { value: 0x0},//, validate: RED.validators.number() },

@@ -40,7 +40,7 @@ module.exports = function (RED) {
 
       node.status({ fill: "yellow", shape: "ring", text: "initialising" });
       var options = Object.assign({}, node.connectionConfig.options);
-      this.client = connection_pool.get(this.connectionConfig.port, this.connectionConfig.host, options);
+      this.client = connection_pool.get(this, this.connectionConfig.port, this.connectionConfig.host, options);
 
       this.client.on('error', function (error) {
         console.log("Error: ", error);
@@ -168,11 +168,11 @@ module.exports = function (RED) {
           }
         });
 
-        if (address == "") {
-          nodeStatusError(null, msg, "address is empty");
+        if (!address || typeof address != "string") {
+          nodeStatusError(null, msg, "address is not valid");
           return;
         }
-        if (!data && data !== 0) {
+        if (data == null) {
           nodeStatusError(null, msg, "data is not valid");
           return;
         }

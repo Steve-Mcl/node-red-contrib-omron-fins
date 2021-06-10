@@ -43,7 +43,7 @@ module.exports = function (RED) {
 
     if (this.connectionConfig) {
       var options = Object.assign({}, node.connectionConfig.options);
-      node.client = connection_pool.get(this.connectionConfig.port, this.connectionConfig.host, options);
+      node.client = connection_pool.get(this, this.connectionConfig.port, this.connectionConfig.host, options);
       node.status({ fill: "yellow", shape: "ring", text: "initialising" });
 
       this.client.on('error', function (error, seq) {
@@ -103,9 +103,27 @@ module.exports = function (RED) {
             if (pkt.response.values) {
               let iWD = 0;
               for (let x in pkt.response.values) {
-                let item_addr = node.client.decodedAddressToString(pkt.request.address, iWD, 0);
+                let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, 0);
                 kvs[item_addr] = pkt.response.values[x];
                 iWD++;
+              }
+            }
+            return kvs;
+          };
+
+          var kvMakerBits = function (pkt, asBool) {
+            let kvs = {};
+            if (pkt.response.values) {
+              let iWD = 0;
+              let iBit = 0;
+              for (let x in pkt.response.values) {
+                let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, iBit);
+                kvs[item_addr] = asBool ? !!pkt.response.values[x] : pkt.response.values[x];
+                iBit++;
+                if(pkt.request.address.Bit + iBit > 15) {
+                  iBit = -pkt.request.address.Bit;
+                  iWD++;
+                }
               }
             }
             return kvs;
@@ -115,18 +133,35 @@ module.exports = function (RED) {
           var value;
           switch (outputFormat) {
             case "signed":
-              value = sequence.response.values;
+              if(sequence.request.address.isBitAddress) {
+                value = sequence.response.values.map(e => !!e);
+              } else {
+                value = sequence.response.values;
+              }
               break;
             case "unsigned":
-              sequence.response.values = Uint16Array.from(sequence.response.values);
-              value = sequence.response.values;
+              if(sequence.request.address.isBitAddress) {
+                value = sequence.response.values;
+              } else {
+                sequence.response.values = Uint16Array.from(sequence.response.values);
+                value = sequence.response.values;
+              }
               break;
             case "signedkv":
               value = kvMaker(sequence);
+              if(sequence.request.address.isBitAddress) {
+                value = kvMakerBits(sequence, true);
+              } else {
+                value = kvMaker(sequence);
+              }
               break;
             case "unsignedkv":
-              sequence.response.values = Uint16Array.from(sequence.response.values);
-              value = kvMaker(sequence);
+              if(sequence.request.address.isBitAddress) {
+                value = kvMakerBits(sequence, false);
+              } else {
+                sequence.response.values = Uint16Array.from(sequence.response.values);
+                value = kvMaker(sequence);
+              }
               break;
             default: //buffer
               value = sequence.response.buffer;
@@ -181,10 +216,8 @@ module.exports = function (RED) {
         /* ****************  Node status **************** */
         var nodeStatusError = function (err, msg, statusText) {
           if (err) {
-            console.error(err);
             node.error(err, msg);
           } else {
-            console.error(statusText);
             node.error(statusText, msg);
           }
           node.status({ fill: "red", shape: "dot", text: statusText });
@@ -196,8 +229,8 @@ module.exports = function (RED) {
         /* ****************  Get count Parameter **************** */
         var count = RED.util.evaluateNodeProperty(node.count, node.countType, node, msg);
 
-        if (address == "") {
-          nodeStatusError(null, msg, "address is empty");
+        if (!address || typeof address != "string") {
+          nodeStatusError(null, msg, "address is not valid");
           return;
         }
         count = parseInt(count);

@@ -35,9 +35,9 @@ function convertPayloadToDataArray(payload) {
   } else if (typeof payload === "string") {
     str = "" + payload;
   } else if (typeof payload === "number") {
-    str = "" + payload;
-  } else {
-    array = payload;
+    return [payload];
+  } else if (typeof payload === "boolean") {
+    return [payload];
   }
 
   if (str.length === 0) {
@@ -51,11 +51,9 @@ function convertPayloadToDataArray(payload) {
 
 module.exports = {
 
-  get: function (port, host, opts) {
+  get: function (node, port, host, opts) {
     var fins = require('./omron-fins.js');
     var id = "FinsClient:{host:'" + (host || "") + "', port:" + (port || "''") + ", MODE:" + opts.MODE + ", ICF:" + opts.ICF + ", DNA:" + opts.DNA + ", DA1:" + opts.DA1 + ", DA2:" + opts.DA2 + ", SNA:" + opts.SNA + ", SA1:" + opts.SA1 + ", SA2:" + opts.SA2 + "}";
-    //var context = this.context();
-    var node = this;
 
     if (!clients[id]) {
       clients[id] = function () {
@@ -63,7 +61,7 @@ module.exports = {
         var h = host || options.host;
         var p = port || options.port;
 
-        util.log(`[FINS] adding new connection to pool ~ ${id}`);
+        node.log(`[FINS] adding new connection to pool ~ ${id}`);
         var client = fins.FinsClient(parseInt(p), h, options);
         var connecting = false;
 
@@ -114,21 +112,21 @@ module.exports = {
             }
             connecting = false;
           },
-          decodeMemoryAddress: function (addressString) {
-            return client.decodeMemoryAddress(addressString);
+          stringToFinsAddress: function (addressString) {
+            return client.stringToFinsAddress(addressString);
           },
 
-          decodedAddressToString: function (decodedAddress, offsetWD, offsetBit) {
-            return client.decodedAddressToString(decodedAddress, offsetWD, offsetBit);
+          FinsAddressToString: function (decodedAddress, offsetWD, offsetBit) {
+            return client.FinsAddressToString(decodedAddress, offsetWD, offsetBit);
           },
 
           disconnect: function () {
             this._instances -= 1;
             if (this._instances <= 0) {
-              util.log(`[FINS] closing connection ~ ${id}`);
+              node.log(`[FINS] closing connection ~ ${id}`);
               client.close();
               client = null;
-              util.log(`[FINS] deleting connection from pool ~ ${id}`);
+              node.log(`[FINS] deleting connection from pool ~ ${id}`);
               delete clients[id];
             }
           }
@@ -136,18 +134,18 @@ module.exports = {
 
         client.on('open', function () {
           if (client) {
-            util.log(`[FINS] connected ~ ${id}`);
+            node.log(`[FINS] connected ~ ${id}`);
             connecting = false;
           }
         });
         client.on('close', function (err) {
-          util.log(`[FINS] connection closed ~ ${id}`);
+          node.log(`[FINS] connection closed ~ ${id}`);
           connecting = false;
 
           if(options.autoConnect && !options.preventAutoReconnect){
             setTimeout(function () {
               if(options.autoConnect && !options.preventAutoReconnect){
-                util.log(`[FINS] autoConnect call from  error handler ~ ${id}`);
+                node.log(`[FINS] autoConnect call from  error handler ~ ${id}`);
                 obj.connect();
               }
             },  5000); //TODO: Parameterise

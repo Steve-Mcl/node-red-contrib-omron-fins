@@ -22,6 +22,22 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. 
 -->
 
+<style>
+  .omron-fins-form-row > label {
+    width:120px;
+  }
+  .omron-fins-form-row > div.form-tips {
+    display: inline-block !important;
+    background: #ffe;
+    border-radius: 2px;
+    border: 1px solid #ddd;
+    margin-top: 2px;
+    width: 70%;
+    overflow: auto;
+    max-width: unset;
+  }
+</style>
+
 <script type="text/javascript">
   RED.nodes.registerType('FINS Read', {
     category: 'OMRON',
@@ -82,45 +98,52 @@ SOFTWARE.
           icon:"fa fa-sign-out",
           options:[
           { label: "buffer", value: 'buffer', title: 'Send a buffer in the msg property specified by "Output property"'},
-          { label: "Signed Array (int16)", value: 'signed', title: 'Send an array of 16 bit signed values in the msg property specified by "Output property"'},
-          { label: "Unsigned Array (uint16)", value: 'unsigned', title: 'Send an array of 16 bit unsigned values in the msg property specified by "Output property"'},
-          { label: "Signed key/value (int16)", value: 'signedkv', title: 'Send an object with PLC address keys and 16 bit signed values in the msg property specified by "Output property"'},
-          { label: "Unsigned key/value (uint16)", value: 'unsignedkv', title: 'Send an object with PLC address keys and 16 bit unsigned values in the msg property specified by "Output property"'},
+          { label: "Array", value: 'signed', title: 'Send an array of 16 bit signed or true/false bool values in the msg property specified by "Output property"'},
+          { label: "Unsigned Array", value: 'unsigned', title: 'Send an array of 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property"'},
+          { label: "Key/value", value: 'signedkv', title: 'Send an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property"'},
+          { label: "Unsigned key/value", value: 'unsignedkv', title: 'Send an object with PLC address keys and 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property"'},
           ],
           default: "buffer"
       }
       var outputFormatField = setupTypedInput('outputFormat', [outputListOpt, 'msg', 'flow', 'global', 'env'], 'list');//specification
+      outputFormatField.on("change", function() {
+        let t = outputFormatField.typedInput("type");
+        $("omron-fins-outputFormat-tip").text(t)
+      })
     }
   });
 </script>
 <script type="text/html" data-template-name="FINS Read">
   <div class="form-row">
-    <label style="width:120px;" for="node-input-name"><i class="icon-tag"></i> <span data-i18n="read.label.name"> Name</span></label>
+    <label for="node-input-name"><i class="icon-tag"></i> <span data-i18n="read.label.name"> Name</span></label>
     <input style="width:70%" type="text" id="node-input-name" placeholder="Name">
   </div>
   <div class="form-row">
-    <label style="width:120px;" for="node-input-connection"><i class="icon-globe"></i><span data-i18n="read.label.connection"> Connection</span></label>
+    <label for="node-input-connection"><i class="icon-globe"></i><span data-i18n="read.label.connection"> Connection</span></label>
     <input style="width:70%" type="text" id="node-input-connection">
   </div>
   <div class="form-row">
-    <label style="width:120px;" for="node-input-address"><i class="fa fa-envelope"></i> <span data-i18n="read.label.address"> Address</span></label>
+    <label for="node-input-address"><i class="fa fa-envelope"></i> <span data-i18n="read.label.address"> Address</span></label>
     <input style="width:70%" type="text" id="node-input-address" placeholder="">
     <input type="hidden" id="node-input-addressType">
   </div>
   <div class="form-row">
-    <label style="width:120px;" for="node-input-count"><i class="fa fa-sort-numeric-asc"></i> <span data-i18n="read.label.count"> Count</span></label>
+    <label for="node-input-count"><i class="fa fa-sort-numeric-asc"></i> <span data-i18n="read.label.count"> Count</span></label>
     <input style="width:70%" type="text" id="node-input-count" placeholder="">
     <input type="hidden" id="node-input-countType">
   </div>
   <div class="form-row">
-    <label style="width:120px;" for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.msgProperty"> Output property</span></label>
+    <label for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.msgProperty"> Output property</span></label>
     <input type="hidden" id="node-input-msgPropertyType">
     <input style="width:70%" type="text" id="node-input-msgProperty" placeholder="payload">
   </div>  
-  <div class="form-row">
-    <label style="width:120px;" for="node-input-outputFormat"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.outputFormat"> Output</span></label>
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-outputFormat"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.outputFormat"> Output</span></label>
     <input type="hidden" id="node-input-outputFormatType">
     <input style="width:70%" type="text" id="node-input-outputFormat" placeholder="">
+    <br>
+    <label>&nbsp;</label>
+    <div id="omron-fins-outputFormat-tip" class="omron-fins-form-tip"></div>
   </div>   
 </script>
 
@@ -153,10 +176,10 @@ SOFTWARE.
     <dd>Specify the type of result required.
       <ul>
         <li>Buffer: Sends a buffer. To automate this option, use the string value <code>buffer</code></li>
-        <li>Signed Array (int16): Sends an array of 16 bit signed values in the msg property specified by "Output property". To automate this option, use the string value <code>signed</code></li>
-        <li>Unsigned Array (uint16): Sends an array of 16 bit unsigned values in the msg property specified by "Output property". To automate this option, use the string value <code>unsigned</code></li>
-        <li>Signed key/value (int16): Sends an object with PLC address keys and 16 bit signed values in the msg property specified by "Output property". To automate this option, use the string value <code>signedkv</code></li>
-        <li>Unsigned key/value (uint16): Sends an object with PLC address keys and 16 bit unsigned values in the msg property specified by "Output property". To automate this option, use the string value <code>unsignedkv</code></li>
+        <li>Array: Sends an array of 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>signed</code></li>
+        <li>Unsigned Array: Sends an array of 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property". To automate this option, use the string value <code>unsigned</code></li>
+        <li>Signed key/value: Sends an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>signedkv</code></li>
+        <li>Unsigned key/value: Sends an object with PLC address keys and 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property". To automate this option, use the string value <code>unsignedkv</code></li>
       </ul>
     </dd>
   </dl>    
