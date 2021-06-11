@@ -24,17 +24,14 @@ SOFTWARE.
 
 <style>
   .omron-fins-form-row > label {
-    width:120px;
+    width:120px !important;
   }
   .omron-fins-form-row > div.form-tips {
     display: inline-block !important;
-    background: #ffe;
-    border-radius: 2px;
-    border: 1px solid #ddd;
-    margin-top: 2px;
-    width: 70%;
+    border-radius: 4px  !important;
+    margin-top: 4px;
+    width: calc(70% - 18px);
     overflow: auto;
-    max-width: unset;
   }
 </style>
 
@@ -89,50 +86,72 @@ SOFTWARE.
 
       setupTypedInput('address', ["msg", "flow", "global", "str"], 'msg');
       setupTypedInput('count', ["msg", "flow", "global", "num"], 'num');
-      setupTypedInput('msgProperty', ["msg"], 'msg');
-      var msgPropertyField = $("#node-input-msgProperty").typedInput({types:[{label:"msg.", value:"str"}]});
-      var outputListOpt = {
-          value:"list",
-          label:"output", 
-          title: "output", 
-          icon:"fa fa-sign-out",
-          options:[
-          { label: "buffer", value: 'buffer', title: 'Send a buffer in the msg property specified by "Output property"'},
-          { label: "Array", value: 'signed', title: 'Send an array of 16 bit signed or true/false bool values in the msg property specified by "Output property"'},
-          { label: "Unsigned Array", value: 'unsigned', title: 'Send an array of 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property"'},
-          { label: "Key/value", value: 'signedkv', title: 'Send an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property"'},
-          { label: "Unsigned key/value", value: 'unsignedkv', title: 'Send an object with PLC address keys and 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property"'},
-          ],
-          default: "buffer"
+      const $msgPropertyField = setupTypedInput('msgProperty', ["msg"], 'msg');
+      $("#node-input-msgProperty").typedInput({types:[{label:"msg.", value:"str"}]});
+
+      const outputListOpt = {
+        buffer: { label: "Buffer", value: 'buffer', title: 'Sends a buffer in the msg property specified by "Output property"', hasValue: false},
+        signed: { label: "Array", value: 'signed', title: 'Sends an array of 16 bit signed or true/false bool values in the msg property specified by "Output property"', hasValue: false},
+        unsigned: { label: "Unsigned Array", value: 'unsigned', title: 'Sends an array of 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property"', hasValue: false},
+        signedkv: { label: "Key/value", value: 'signedkv', title: 'Sends an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property"', hasValue: false},
+        unsignedkv: { label: "Unsigned key/value", value: 'unsignedkv', title: 'Sends an object with PLC address keys and 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property"', hasValue: false},
       }
-      var outputFormatField = setupTypedInput('outputFormat', [outputListOpt, 'msg', 'flow', 'global', 'env'], 'list');//specification
-      outputFormatField.on("change", function() {
-        let t = outputFormatField.typedInput("type");
-        $("omron-fins-outputFormat-tip").text(t)
-      })
+      if(node.outputFormatType == "list") {
+        //backwards compatibility, try to upgrade users current outputFormat/outputFormatType setting
+        //outputFormatType was originally a sub option 'list' of buffer,signed,unsigned etc, now it is a simpler dropdown typedInput
+        if(Object.keys(outputListOpt).indexOf(node.outputFormat+'') >= 0) {
+          node.outputFormatType = node.outputFormat;
+          node.outputFormat = "";
+        } else {
+          node.outputFormatType = "buffer";
+        }
+      }
+      const outputFormatOptions =  Object.values(outputListOpt);
+      outputFormatOptions.push('msg', 'flow', 'global', 'env');
+      const $outputFormatField = setupTypedInput('outputFormat', outputFormatOptions, 'buffer');
+
+      $outputFormatField.on("change", function() {
+        let t = $outputFormatField.typedInput("type") || "";
+        let v = (t && outputListOpt[t]) ? outputListOpt[t].title : "";
+        if(!v) {
+          v = "The variable should resolve to one of the following...";
+          let opts = Object.values(outputListOpt);
+          opts.forEach(function(e) {
+            v += '<br>• <span style="font-family: monospace; color: var(--red-ui-text-color-code);">' + e.value + "</span> - for output type " + e.label;
+          })
+          v += '<br><br><i>NOTE: Output will default to type <span style="font-family: monospace; color: var(--red-ui-text-color-code);">buffer</span> if not recognised<i>'
+        }
+        $("#omron-fins-outputFormat-tip").html(v)
+      });
+    },
+    oneditresize() {
+      setTimeout(() => {
+        console.log("updating tip max-width")
+        $("#omron-fins-outputFormat-tip").css("max-width", "unset");
+      }, 250);
     }
   });
 </script>
 <script type="text/html" data-template-name="FINS Read">
-  <div class="form-row">
+  <div class="form-row omron-fins-form-row">
     <label for="node-input-name"><i class="icon-tag"></i> <span data-i18n="read.label.name"> Name</span></label>
     <input style="width:70%" type="text" id="node-input-name" placeholder="Name">
   </div>
-  <div class="form-row">
+  <div class="form-row omron-fins-form-row">
     <label for="node-input-connection"><i class="icon-globe"></i><span data-i18n="read.label.connection"> Connection</span></label>
     <input style="width:70%" type="text" id="node-input-connection">
   </div>
-  <div class="form-row">
+  <div class="form-row omron-fins-form-row">
     <label for="node-input-address"><i class="fa fa-envelope"></i> <span data-i18n="read.label.address"> Address</span></label>
     <input style="width:70%" type="text" id="node-input-address" placeholder="">
     <input type="hidden" id="node-input-addressType">
   </div>
-  <div class="form-row">
+  <div class="form-row omron-fins-form-row">
     <label for="node-input-count"><i class="fa fa-sort-numeric-asc"></i> <span data-i18n="read.label.count"> Count</span></label>
     <input style="width:70%" type="text" id="node-input-count" placeholder="">
     <input type="hidden" id="node-input-countType">
   </div>
-  <div class="form-row">
+  <div class="form-row omron-fins-form-row">
     <label for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.msgProperty"> Output property</span></label>
     <input type="hidden" id="node-input-msgPropertyType">
     <input style="width:70%" type="text" id="node-input-msgProperty" placeholder="payload">
@@ -143,7 +162,7 @@ SOFTWARE.
     <input style="width:70%" type="text" id="node-input-outputFormat" placeholder="">
     <br>
     <label>&nbsp;</label>
-    <div id="omron-fins-outputFormat-tip" class="omron-fins-form-tip"></div>
+    <div id="omron-fins-outputFormat-tip" class="form-tips"></div>
   </div>   
 </script>
 
