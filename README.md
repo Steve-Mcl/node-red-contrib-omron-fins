@@ -3,7 +3,7 @@ node-red-contrib-omron-fins
 
 ## Overview
 This is a Node-RED node module to directly interface with OMRON PLCs over FINS Ethernet protocol. 
-For now it only supports READ and WRITE operations over FINS UDP.
+For now it only supports READ and WRITE of WORD or BIT addresses over FINS UDP.
 Tested on CV, CS, CJ, NJ and NX PLCs (the ones with FINS support)
 
 ## Version Update Notes
@@ -93,7 +93,10 @@ SA2 | 0
 
 ## Data formats and conversion
 
-NOTE: This node returns a buffer, 16bit signed or 16bit unsigned data only.  While that may seem restrictive, it was a deliberate design decision to keep the node mean and lean. 
+NOTES
+* This node returns a buffer, 16bit signed or 16bit unsigned data for WD addresses only.  
+* This node returns a buffer, boolean (true/false) or 1/0 for BIT addresses only.  
+While this may seem restrictive, it is a deliberate design decision to keep the node mean and lean. 
 
 ### Read on...
 
