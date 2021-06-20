@@ -1,7 +1,7 @@
 <!-- 
 MIT License
 
-Copyright (c) 2019, 2020 Steve-Mcl
+Copyright (c) 2019, 2020, 2021 Steve-Mcl
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -105,28 +105,33 @@ SOFTWARE.
 </script>
 
 <script type="text/html" data-help-name="FINS Write">
-  <p>Write data to an OMRON PLC using FINS protocol</p>
+  <p>Write 16 bit WORD or BIT data to an OMRON PLC using FINS protocol</p>
   <h3>Properties</h3>
   <dl class="message-properties">
     <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
     <dd>The PLC connection</dd>
     <dt class="required">Address<span class="property-type">string</span></dt>
-    <dd>PLC Memory Address. Depending on the PLC MODE selected in the connection, the address will use the PLC standard addressing format. Some examples...
+    <dd>PLC WORD or BIT Memory Address. Depending on the PLC MODE selected in the connection, the address will use the PLC standard addressing format. Some examples...
       <ul>
-        <li>CIO2000 - Core IO 2000</li>
-        <li>D100 - Data Memory 100</li>
-        <li>E0_200 - Extended Data Memory Bank 0, register 200</li>
-        <li>H10 - Holding Relay 10</li>
-        <li>W500 - Work Area 500</li>
-        <li>A264 - Auxiliary Area 264</li>
-        <li>DR10 - Data Register 10</li>
-        <li>DR10 - Data Register 10</li>
-        <li>IR0 - Index Register 0</li>
+        <li>CIO2000 - Core IO WORD 2000</li>
+        <li>CIO50.0 - Core IO WORD 50 BIT 0</li>
+        <li>D100 - Data Memory WORD 100</li>
+        <li>D20.15 - Data Memory WORD 20 BIT 15</li>
+        <li>E0_200 - Extended Data Memory Bank 0, WORD 200</li>
+        <li>E1_5.7 - Extended Data Memory Bank 1, WORD 5 BIT 7</li>
+        <li>H10 - Holding Relay WORD 10</li>
+        <li>H9.9 - Holding Relay WORD 9 BIT 9</li>
+        <li>W500 - Work Area WORD 500</li>
+        <li>W0.0 - Work Area WORD 0 BIT 0</li>
+        <li>A264 - Auxiliary Area WORD 264</li>
+        <li>A0.1 - Auxiliary Area WORD 0 BIT 1</li>
+        <li>DR10 - Data Register WORD 10</li>
+        <li>IR0 - Index Register WORD 0</li>
         <li>T50 - Timer 50 PV</li>
         <li>C50 - Counter 50 PV</li>
       </ul>
     </dd>
-    <dt class="required">Data<span class="property-type">number | string</span></dt>
+    <dt class="required">Data<span class="property-type">number | Number[] | bool | bool[] | string</span></dt>
     <dd>Data to write to the PLC</dd>
   </dl>
 
@@ -137,14 +142,18 @@ SOFTWARE.
   </p>  
   <h3>Details</h3>
   <p>
-    Incomming <code>data</code> must be one of the following...
+    Incoming <code>data</code> must be one of the following...
     <ul>
-        <li>integer (This will be written to the address provided)</li>
-        <li>string containing an integer (This will be written to the address provided)</li>
-        <li>array of integer (These will be written to the PLC starting at the address provided)</li>
-        <li>comma separated list of integer (These will be written to the PLC starting at the address provided)</li>
+      <li>bool (This will be written to the BIT address provided)</li>
+      <li>bool array (This will be written to the PLC starting at the BIT address provided)</li>
+      <li>integer (This will be written to the WORD address provided)</li>
+      <li>integer array (This will be written to the PLC starting at the WORD address provided)</li>
+      <li>string containing a WORD or BIT value (This will be written to the PLC at the WORD or BIT address provided)</li>
+      <li>comma separated list of WORD or BIT values (These will be written to the PLC starting at the WORD or BIT address provided)</li>
     </ul>
-    The count of data elements determines how many addresses are written. e.g. if you use [1,2,3,4,5] as the data source and D100 as the address, then D100 ~ D104 will be modified.  
+    The count of elements in <code>data</code> determines how many PLC addresses are modified. e.g.<br>
+    * if <code>data</code> is <code>[1,2,3,4,5]</code> and <code>D100</code> is the <code>address</code>, then D100 ~ D104 will be modified.<br>  
+    * if <code>data</code> is <code>[true,false,1,0]</code> and <code>CIO7.7</code> is the <code>address</code>, then CIO7.7 ~ CIO7.10 will be modified.<br>  
   </p>
   <h3>Connection control</h3>
   <p><i>INFO: To open / close the FINS connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS read / FINS write node.</i></p>

@@ -167,22 +167,28 @@ SOFTWARE.
 </script>
 
 <script type="text/html" data-help-name="FINS Read">
-  <p>Read data from an OMRON PLCs using FINS protocol</p>
+  <p>Read 16 bit WORD or BIT data from an OMRON PLCs using FINS protocol</p>
   <h3>Properties</h3>
   <dl class="message-properties">
     <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
     <dd>The PLC connection</dd>
     <dt class="required">Address<span class="property-type">string</span></dt>
-    <dd>PLC Memory Address. Depending on the PLC MODE selected in the connection, the address will use the PLC standard addressing format. Some examples...
+    <dd>PLC WORD or BIT Memory Address. Depending on the PLC MODE selected in the connection, the address will use the PLC standard addressing format. Some examples...
       <ul>
-        <li>CIO2000 - Core IO 2000</li>
-        <li>D100 - Data Memory 100</li>
-        <li>E0_200 - Extended Data Memory Bank 0, register 200</li>
-        <li>H10 - Holding Relay 10</li>
-        <li>W500 - Work Area 500</li>
-        <li>A264 - Auxiliary Area 264</li>
-        <li>DR10 - Data Register 10</li>
-        <li>IR0 - Index Register 0</li>
+        <li>CIO2000 - Core IO WORD 2000</li>
+        <li>CIO50.0 - Core IO WORD 50 BIT 0</li>
+        <li>D100 - Data Memory WORD 100</li>
+        <li>D20.15 - Data Memory WORD 20 BIT 15</li>
+        <li>E0_200 - Extended Data Memory Bank 0, WORD 200</li>
+        <li>E1_5.7 - Extended Data Memory Bank 1, WORD 5 BIT 7</li>
+        <li>H10 - Holding Relay WORD 10</li>
+        <li>H9.9 - Holding Relay WORD 9 BIT 9</li>
+        <li>W500 - Work Area WORD 500</li>
+        <li>W0.0 - Work Area WORD 0 BIT 0</li>
+        <li>A264 - Auxiliary Area WORD 264</li>
+        <li>A0.1 - Auxiliary Area WORD 0 BIT 1</li>
+        <li>DR10 - Data Register WORD 10</li>
+        <li>IR0 - Index Register WORD 0</li>
         <li>T50 - Timer 50 PV</li>
         <li>C50 - Counter 50 PV</li>
       </ul>
