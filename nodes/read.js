@@ -131,10 +131,11 @@ module.exports = function (RED) {
           //backwards compatibility, try to upgrade users current setting
           //the output type was originally a sub option 'list'
           var outputFormat = "buffer";
-          if(node.outputFormatType == "list") {
-            if(['buffer', 'signed', 'unsigned', 'signedkv', 'unsignedkv'].indexOf(node.outputFormat+'') >= 0) {
+          const builtInReturnTypes = ['buffer', 'signed', 'unsigned', 'signedkv', 'unsignedkv'];
+          if(node.outputFormatType == "list" && builtInReturnTypes.indexOf(node.outputFormat+'') >= 0) {
               outputFormat = node.outputFormat;
-            }
+          } else if(builtInReturnTypes.indexOf(node.outputFormatType+'') > 0) {
+            outputFormat = node.outputFormatType;
           } else {
             outputFormat = RED.util.evaluateNodeProperty(node.outputFormat, node.outputFormatType, node, origInputMsg);
           }
