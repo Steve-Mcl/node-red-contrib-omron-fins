@@ -43,7 +43,7 @@ function convertPayloadToDataArray(payload) {
   if (str.length === 0) {
     return null;
   } else {
-    array = str.split(/\s*,\s*/).map(Number);
+    array = str.split(/\s*,\s*/);
   }
   return array;
 }
