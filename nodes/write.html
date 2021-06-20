@@ -44,7 +44,7 @@ SOFTWARE.
     align: "right",
     icon: "write.png",
     label: function () {
-      return this.name || "FINS Write";
+      return this.name || ((this.addressType == "str" && this.address != "") ? this.address : "FINS Write");
     },
     oneditprepare: function () {
       var node = this;

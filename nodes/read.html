@@ -58,7 +58,7 @@ SOFTWARE.
     align: "left",
     icon: "read.png",
     label: function () {
-      return this.name || "FINS Read";
+      return this.name || ((this.addressType == "str" && this.address != "") ? this.address : "FINS Read");
     },
     oneditprepare: function () {
       var node = this;
