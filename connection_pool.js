@@ -52,8 +52,8 @@ function convertPayloadToDataArray(payload) {
 module.exports = {
 
   get: function (node, port, host, opts) {
-    var fins = require('./omron-fins.js');
-    var id = "FinsClient:{host:'" + (host || "") + "', port:" + (port || "''") + ", MODE:" + opts.MODE + ", ICF:" + opts.ICF + ", DNA:" + opts.DNA + ", DA1:" + opts.DA1 + ", DA2:" + opts.DA2 + ", SNA:" + opts.SNA + ", SA1:" + opts.SA1 + ", SA2:" + opts.SA2 + "}";
+    const fins = require('./omron-fins.js');
+    const id = `FinsClient:{host:'${host || ""}', port:'${port || ""}', protocol:'${opts.protocol || "udp"}', MODE:'${opts.MODE}', ICF:'${opts.ICF}', DNA:'${opts.DNA}', DA1:'${opts.DA1}', DA2:'${opts.DA2}', SNA:'${opts.SNA}', SA1:'${opts.SA1}', SA2:'${opts.SA2}'}`;
 
     if (!clients[id]) {
       clients[id] = function () {
