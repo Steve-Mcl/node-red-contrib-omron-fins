@@ -22,13 +22,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. 
 */
 
-var util = require("util");
-var clients = {};
 
+const clients = {};
 
 function convertPayloadToDataArray(payload) {
-  var array = [];
-  var str = '';
+  let array = [];
+  let str = '';
 
   if (Array.isArray(payload)) {
     return payload;
@@ -57,36 +56,38 @@ module.exports = {
 
     if (!clients[id]) {
       clients[id] = function () {
-        var options = opts || {};
-        var h = host || options.host;
-        var p = port || options.port;
+        const options = opts || {};
+        const h = host || options.host;
+        const p = port || options.port;
 
         node.log(`[FINS] adding new connection to pool ~ ${id}`);
-        var client = fins.FinsClient(parseInt(p), h, options);
-        var connecting = false;
+        const client = fins.FinsClient(parseInt(p), h, options);
+        let connecting = false;
 
         options.autoConnect = options.autoConnect == undefined ? true : options.autoConnect;
         options.preventAutoReconnect = false;
 
-        var obj = {
+        const finsClientConnection = {
 
           _instances: 0,
-          write: function (addr, data, callback, msg) {
+          write: function (address, data, opts, tag) {
             if (!client.connected && options.preventAutoReconnect) {
               throw new Error("Not connected!")
             }
-            var data = convertPayloadToDataArray(data);
-            if (!Array.isArray(data)) {
+            const _data = convertPayloadToDataArray(data);
+            if (!Array.isArray(_data)) {
               throw new Error('data is not valid');
             }
-            var sid = client.write(addr, data, callback, msg);
+            const sid = client.write(address, _data, opts, tag);
             return sid;
           },
-          read: function (addr, len, callback, msg) {
+          read: function (address, len, opts, tag) {
             if (!client.connected && options.preventAutoReconnect) {
               throw new Error("Not connected!")
             }
-            var sid = client.read(addr, parseInt(len), callback, msg);
+            const sid = client.read(address, parseInt(len), opts, tag);
+            return sid;
+          },
             return sid;
           },
           getAutoConnect: function () {
@@ -146,13 +147,13 @@ module.exports = {
             setTimeout(function () {
               if(options.autoConnect && !options.preventAutoReconnect){
                 node.log(`[FINS] autoConnect call from  error handler ~ ${id}`);
-                obj.connect();
+                finsClientConnection.connect();
               }
             },  5000); //TODO: Parameterise
           }
         });
 
-        return obj
+        return finsClientConnection
       }();
     }
     clients[id]._instances += 1;

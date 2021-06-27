@@ -23,11 +23,11 @@ SOFTWARE.
 */
 
 module.exports = function (RED) {
-  var connection_pool = require("../connection_pool.js");
+  const connection_pool = require("../connection_pool.js");
 
   function omronRead(config) {
     RED.nodes.createNode(this, config);
-    var node = this;
+    const node = this;
     node.name = config.name;
     node.topic = config.topic;
     node.connection = config.connection;
@@ -42,7 +42,7 @@ module.exports = function (RED) {
     node.connectionConfig = RED.nodes.getNode(node.connection);
 
     if (this.connectionConfig) {
-      var options = Object.assign({}, node.connectionConfig.options);
+      const options = Object.assign({}, node.connectionConfig.options);
       node.client = connection_pool.get(this, this.connectionConfig.port, this.connectionConfig.host, options);
       node.status({ fill: "yellow", shape: "ring", text: "initialising" });
 
@@ -65,6 +65,48 @@ module.exports = function (RED) {
         node.status({ fill: "yellow", shape: "dot", text: "initialised" });
       });
 
+      /* ****************  Node status **************** */
+      function nodeStatusError (err, msg, statusText) {
+        if (err) {
+          node.error(err, msg);
+        } else {
+          node.error(statusText, msg);
+        }
+        node.status({ fill: "red", shape: "dot", text: statusText });
+      };
+
+      const cmdExpected = "0101";
+      function kvMaker(pkt) {
+        let kvs = {};
+        if (pkt.response.values) {
+          let iWD = 0;
+          for (let x in pkt.response.values) {
+            let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, 0);
+            kvs[item_addr] = pkt.response.values[x];
+            iWD++;
+          }
+        }
+        return kvs;
+      };
+
+      function kvMakerBits(pkt, asBool) {
+        let kvs = {};
+        if (pkt.response.values) {
+          let iWD = 0;
+          let iBit = 0;
+          for (let x in pkt.response.values) {
+            let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, iBit);
+            kvs[item_addr] = asBool ? !!pkt.response.values[x] : pkt.response.values[x];
+            iBit++;
+            if(pkt.request.address.Bit + iBit > 15) {
+              iBit = -pkt.request.address.Bit;
+              iWD++;
+            }
+          }
+        }
+        return kvs;
+      };
+
       function finsReply(err, sequence) {
         if(!err && !sequence) {
           return;
@@ -72,65 +114,30 @@ module.exports = function (RED) {
         var origInputMsg = (sequence && sequence.tag) || {};
         try {
           if (err || sequence.error) {
-            node.status({ fill: "red", shape: "ring", text: "error" });
-            node.error(err || sequence.error, origInputMsg);
+            nodeStatusError(err || sequence.error, origInputMsg, "error")
             return;
           }          
           if (sequence.timeout) {
-            node.status({ fill: "red", shape: "ring", text: "timeout" });
-            node.error("timeout", origInputMsg);
+            nodeStatusError("timeout", origInputMsg, "timeout");
             return;
           }
-          var cmdExpected = "0101";
           if (sequence.response && sequence.sid != sequence.response.sid) {
-            node.status({ fill: "red", shape: "dot", text: "Incorrect SID" });
-            node.error(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg);
+            nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, "Incorrect SID")
             return;
           }          
           if (!sequence || !sequence.response || sequence.response.endCode !== "0000" || sequence.response.command !== cmdExpected) {
             var ecd = "bad response";
             if (sequence.response && sequence.response.command !== cmdExpected)
-              ecd = `Unexpected response. Expected command '${cmdExpected}' but received " ${sequence.response.command}`;
+              ecd = `Unexpected response. Expected command '${cmdExpected}' but received '${sequence.response.command}'`;
             else if (sequence.response && sequence.response.endCodeDescription)
               ecd = sequence.response.endCodeDescription;
-            node.status({ fill: "red", shape: "dot", text: ecd });
-            node.error(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg);
+            nodeStatusError(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg, ecd);
             return;
           }
 
-          var kvMaker = function (pkt) {
-            let kvs = {};
-            if (pkt.response.values) {
-              let iWD = 0;
-              for (let x in pkt.response.values) {
-                let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, 0);
-                kvs[item_addr] = pkt.response.values[x];
-                iWD++;
-              }
-            }
-            return kvs;
-          };
-
-          var kvMakerBits = function (pkt, asBool) {
-            let kvs = {};
-            if (pkt.response.values) {
-              let iWD = 0;
-              let iBit = 0;
-              for (let x in pkt.response.values) {
-                let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, iBit);
-                kvs[item_addr] = asBool ? !!pkt.response.values[x] : pkt.response.values[x];
-                iBit++;
-                if(pkt.request.address.Bit + iBit > 15) {
-                  iBit = -pkt.request.address.Bit;
-                  iWD++;
-                }
-              }
-            }
-            return kvs;
-          };
           //backwards compatibility, try to upgrade users current setting
           //the output type was originally a sub option 'list'
-          var outputFormat = "buffer";
+          let outputFormat = "buffer";
           const builtInReturnTypes = ['buffer', 'signed', 'unsigned', 'signedkv', 'unsignedkv'];
           if(node.outputFormatType == "list" && builtInReturnTypes.indexOf(node.outputFormat+'') >= 0) {
               outputFormat = node.outputFormat;
@@ -140,7 +147,7 @@ module.exports = function (RED) {
             outputFormat = RED.util.evaluateNodeProperty(node.outputFormat, node.outputFormatType, node, origInputMsg);
           }
 
-          var value;
+          let value;
           switch (outputFormat) {
             case "signed":
               if(sequence.request.address.isBitAddress) {
@@ -199,8 +206,7 @@ module.exports = function (RED) {
           node.status({ fill: "green", shape: "dot", text: "done" });
           node.send(origInputMsg);
         } catch (error) {
-          node.status({ fill: "red", shape: "ring", text: "error" });
-          node.error(error, origInputMsg);
+          nodeStatusError(error, origInputMsg, "error");
         }
       }
 
@@ -223,21 +229,12 @@ module.exports = function (RED) {
           return;
         }
 
-        /* ****************  Node status **************** */
-        var nodeStatusError = function (err, msg, statusText) {
-          if (err) {
-            node.error(err, msg);
-          } else {
-            node.error(statusText, msg);
-          }
-          node.status({ fill: "red", shape: "dot", text: statusText });
-        };
 
         /* ****************  Get address Parameter **************** */
-        var address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
+        const address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
 
         /* ****************  Get count Parameter **************** */
-        var count = RED.util.evaluateNodeProperty(node.count, node.countType, node, msg);
+        let count = RED.util.evaluateNodeProperty(node.count, node.countType, node, msg);
 
         if (!address || typeof address != "string") {
           nodeStatusError(null, msg, "address is not valid");
@@ -250,14 +247,16 @@ module.exports = function (RED) {
         }
 
         try {
-          let sid = this.client.read(address, parseInt(count), finsReply, msg);
+          const opts = msg.finsOptions || {};
+          opts.callback = finsReply;
+          const sid = this.client.read(address, parseInt(count), opts, msg);
           if (sid > 0) {
             node.status({ fill: "yellow", shape: "ring", text: "reading" });
           }
         } catch (error) {
           node.sid = null;
           nodeStatusError(error, msg, "error");
-          let dbgmsg = {
+          const dbgmsg = {
             info: "read.js-->on 'input'",
             connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
             address: address,

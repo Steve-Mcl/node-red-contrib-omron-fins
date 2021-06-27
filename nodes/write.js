@@ -23,10 +23,10 @@ SOFTWARE.
 */
 
 module.exports = function (RED) {
-  var connection_pool = require("../connection_pool.js");
+  const connection_pool = require("../connection_pool.js");
   function omronWrite(config) {
     RED.nodes.createNode(this, config);
-    var node = this;
+    const node = this;
     node.name = config.name;
     node.connection = config.connection;
     node.address = config.address || "topic";
@@ -36,10 +36,27 @@ module.exports = function (RED) {
     node.msgProperty = config.msgProperty || "payload";
     node.msgPropertyType = config.msgPropertyType || "str";
     node.connectionConfig = RED.nodes.getNode(node.connection);
+
+    /* ****************  Node status **************** */
+    function nodeStatusError (err, msg, statusText) {
+      if (err) {
+        console.error(err);
+        node.error(err, msg);
+      } else {
+        console.error(statusText);
+        node.error(statusText, msg);
+      }
+      node.status({ fill: "red", shape: "dot", text: statusText });
+    };
+
+    function nodeStatusParameterError (err, msg, propName) {
+      nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value");
+    };
+
     if (this.connectionConfig) {
 
       node.status({ fill: "yellow", shape: "ring", text: "initialising" });
-      var options = Object.assign({}, node.connectionConfig.options);
+      const options = Object.assign({}, node.connectionConfig.options);
       this.client = connection_pool.get(this, this.connectionConfig.port, this.connectionConfig.host, options);
 
       this.client.on('error', function (error) {
@@ -70,28 +87,27 @@ module.exports = function (RED) {
         try {
           if (err || sequence.error) {
             node.status({ fill: "red", shape: "ring", text: "error" });
-            node.error(err || sequence.error, origInputMsg);
+            nodeStatusError(err || sequence.error, origInputMsg, "error");
+
             return;
           }  
           if (sequence.timeout) {
-            node.status({ fill: "red", shape: "ring", text: "timeout" });
-            node.error("timeout", origInputMsg);
+            nodeStatusError("timeout", origInputMsg, "timeout");
             return;
           }
           if (sequence.response && sequence.sid != sequence.response.sid) {
-            node.status({ fill: "red", shape: "dot", text: "Incorrect SID" });
-            node.error(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg);
+            nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg,"Incorrect SID");
+
             return;
           }
           var cmdExpected = "0102";
           if (!sequence || !sequence.response || sequence.response.endCode !== "0000" || sequence.response.command !== cmdExpected) {
             var ecd = "bad response";
             if (sequence.response && sequence.response.command !== cmdExpected)
-              ecd = `Unexpected response. Expected command '${cmdExpected}' but received " ${sequence.response.command}`;
+              ecd = `Unexpected response. Expected command '${cmdExpected}' but received '${sequence.response.command}'`;
             else if (sequence.response && sequence.response.endCodeDescription)
               ecd = sequence.response.endCodeDescription;
-            node.status({ fill: "red", shape: "dot", text: ecd });
-            node.error(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg);
+            nodeStatusError(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg, ecd);
             return;
           }
 
@@ -115,8 +131,8 @@ module.exports = function (RED) {
           node.status({ fill: "green", shape: "dot", text: "done" });
           node.send(origInputMsg);
         } catch (error) {
-          node.status({ fill: "red", shape: "ring", text: "error" });
-          node.error(error, origInputMsg);
+          nodeStatusError(error, origInputMsg, "error");
+
         }
       }
 
@@ -139,26 +155,11 @@ module.exports = function (RED) {
           return;
         }
 
-        /* ****************  Node status **************** */
-        var nodeStatusError = function (err, msg, statusText) {
-          if (err) {
-            console.error(err);
-            node.error(err, msg);
-          } else {
-            console.error(statusText);
-            node.error(statusText, msg);
-          }
-          node.status({ fill: "red", shape: "dot", text: statusText });
-        };
-        var nodeStatusParameterError = function (err, msg, propName) {
-          nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value");
-        };
-
         /* ****************  Get address Parameter **************** */
-        var address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
+        const address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
 
         /* ****************  Get data Parameter **************** */
-        var data;
+        let data;
         RED.util.evaluateNodeProperty(node.data, node.dataType, node, msg, function (err, value) {
           if (err) {
             nodeStatusParameterError(err, msg, "data");
@@ -178,12 +179,14 @@ module.exports = function (RED) {
         }
 
         try {
-          var sid = this.client.write(address, data, finsReply, msg);
+          const opts = msg.finsOptions || {};
+          opts.callback = finsReply;
+          const sid = this.client.write(address, data, finsReply, msg);
           if (sid > 0) node.status({ fill: "yellow", shape: "ring", text: "write" });
         } catch (error) {
 
           nodeStatusError(error, msg, "error");
-          var dbgmsg = {
+          const dbgmsg = {
             info: "write.js-->on 'input' - try this.client.write(address, data, finsReply)",
             connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
             address: address,
