@@ -143,7 +143,7 @@ module.exports = function (RED) {
                             break;
                         case 'signedkv':
                             if (addr.isBitAddress) {
-                                objValues[addrString] = (val == 1 || val == true) ? 1 : 0;
+                                objValues[addrString] = (val == 1 || val == true) ? true : false;
                             } else {
                                 objValues[addrString] = val;
                             }
