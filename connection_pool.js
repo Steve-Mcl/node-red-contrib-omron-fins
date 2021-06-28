@@ -22,13 +22,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. 
 */
 
-var util = require("util");
-var clients = {};
 
+const clients = {};
 
 function convertPayloadToDataArray(payload) {
-  var array = [];
-  var str = '';
+  let array = [];
+  let str = '';
 
   if (Array.isArray(payload)) {
     return payload;
@@ -52,41 +51,90 @@ function convertPayloadToDataArray(payload) {
 module.exports = {
 
   get: function (node, port, host, opts) {
-    var fins = require('./omron-fins.js');
-    var id = "FinsClient:{host:'" + (host || "") + "', port:" + (port || "''") + ", MODE:" + opts.MODE + ", ICF:" + opts.ICF + ", DNA:" + opts.DNA + ", DA1:" + opts.DA1 + ", DA2:" + opts.DA2 + ", SNA:" + opts.SNA + ", SA1:" + opts.SA1 + ", SA2:" + opts.SA2 + "}";
+    const fins = require('./omron-fins.js');
+    const id = `FinsClient:{host:'${host || ""}', port:'${port || ""}', protocol:'${opts.protocol || "udp"}', MODE:'${opts.MODE}', ICF:'${opts.ICF}', DNA:'${opts.DNA}', DA1:'${opts.DA1}', DA2:'${opts.DA2}', SNA:'${opts.SNA}', SA1:'${opts.SA1}', SA2:'${opts.SA2}'}`;
 
     if (!clients[id]) {
       clients[id] = function () {
-        var options = opts || {};
-        var h = host || options.host;
-        var p = port || options.port;
+        const options = opts || {};
+        const h = host || options.host;
+        const p = port || options.port;
 
         node.log(`[FINS] adding new connection to pool ~ ${id}`);
-        var client = fins.FinsClient(parseInt(p), h, options);
-        var connecting = false;
+        let client = fins.FinsClient(parseInt(p), h, options);
+        let connecting = false;
 
         options.autoConnect = options.autoConnect == undefined ? true : options.autoConnect;
         options.preventAutoReconnect = false;
 
-        var obj = {
+        const finsClientConnection = {
 
           _instances: 0,
-          write: function (addr, data, callback, msg) {
+          write: function (address, data, opts, tag) {
             if (!client.connected && options.preventAutoReconnect) {
               throw new Error("Not connected!")
             }
-            var data = convertPayloadToDataArray(data);
-            if (!Array.isArray(data)) {
+            const _data = convertPayloadToDataArray(data);
+            if (!Array.isArray(_data)) {
               throw new Error('data is not valid');
             }
-            var sid = client.write(addr, data, callback, msg);
+            const sid = client.write(address, _data, opts, tag);
             return sid;
           },
-          read: function (addr, len, callback, msg) {
+          read: function (address, len, opts, tag) {
             if (!client.connected && options.preventAutoReconnect) {
               throw new Error("Not connected!")
             }
-            var sid = client.read(addr, parseInt(len), callback, msg);
+            const sid = client.read(address, parseInt(len), opts, tag);
+            return sid;
+          },
+          readMultiple: function (addresses, opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.readMultiple(addresses, opts, tag);
+            return sid;
+          },
+          fill: function (address, value, count, opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.fill(address, value, parseInt(count), opts, tag);
+            return sid;
+          },
+          transfer: function (srcAddress, dstAddress, count, opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.transfer(srcAddress, dstAddress, parseInt(count), opts, tag);
+            return sid;
+          },
+          status: function (opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.status(opts, tag);
+            return sid;
+          },
+          run: function (opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.run(opts, tag);
+            return sid;
+          },
+          stop: function (opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.stop(opts, tag);
+            return sid;
+          },
+          cpuUnitDataRead: function (opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.cpuUnitDataRead(opts, tag);
             return sid;
           },
           getAutoConnect: function () {
@@ -138,6 +186,7 @@ module.exports = {
             connecting = false;
           }
         });
+        // eslint-disable-next-line no-unused-vars
         client.on('close', function (err) {
           node.log(`[FINS] connection closed ~ ${id}`);
           connecting = false;
@@ -146,13 +195,13 @@ module.exports = {
             setTimeout(function () {
               if(options.autoConnect && !options.preventAutoReconnect){
                 node.log(`[FINS] autoConnect call from  error handler ~ ${id}`);
-                obj.connect();
+                finsClientConnection.connect();
               }
-            },  5000); //TODO: Parameterise
+            },  5000); //TODO: Parametrise
           }
         });
 
-        return obj
+        return finsClientConnection
       }();
     }
     clients[id]._instances += 1;

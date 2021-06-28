@@ -24,18 +24,20 @@ SOFTWARE.
 
 
 <script type="text/javascript">
-  RED.nodes.registerType('FINS Write', {
+  RED.nodes.registerType('FINS Fill', {
     category: 'OMRON',
     color: '#0090d4',
     defaults: {
       name: { value: "" },
       connection: { type: "FINS Connection", required: true },
-      addressType: { value: "msg" },
-      address: { value: "topic", validate: RED.validators.typedInput("addressType") },
-      dataType: { value: "msg" },
-      data: { value: "payload", validate: RED.validators.typedInput("dataType") },
+      addressType: { value: "str" },
+      address: { value: "", required: true, validate: RED.validators.typedInput("addressType") },
+      valueType: { value: "num" },
+      value: { value: "0", required: true, validate: RED.validators.typedInput("valueType") },
+      countType: { value: "num" },
+      count: { value: "1", required: true, validate: RED.validators.typedInput("countType") },
       msgPropertyType: { value: "str" },
-      msgProperty: { value: "payload", validate: RED.validators.typedInput("msgPropertyType") },
+      msgProperty: { value: "payload", required: true, validate: RED.validators.typedInput("msgPropertyType") },
     },
     inputs: 1,
     outputs: 1,
@@ -44,7 +46,16 @@ SOFTWARE.
     align: "right",
     icon: "write.png",
     label: function () {
-      return this.name || ((this.addressType == "str" && this.address != "") ? "Write: " + this.address : "FINS Write");
+      var addrOK = this.addressType == "str" && this.address != "";
+      var valOK = this.valueType == "num" && this.value != "";
+      var cntOK = this.countType == "num" && this.count != "";
+      var value = this.valueType == "num" ? this.value : "?"
+      var count = this.countType == "num" ? this.count : "?";
+      var dynLabel = "FINS Fill";
+      if(addrOK && valOK && cntOK) {
+        dynLabel = `Fill: ${this.address}, ${value}, ${count} WD${count > 1 ? "s" : ""},`
+      }
+      return this.name || dynLabel;
     },
     oneditprepare: function () {
       var node = this;
@@ -71,68 +82,68 @@ SOFTWARE.
         return $(varSel).typedInput('type', typeVal);
       }
 
-      setupTypedInput('address', ["msg","flow","global","str"], 'msg');
-      setupTypedInput('data', ["msg","flow","global","num", "json"], 'msg');
+      setupTypedInput('address', ["str","msg","flow","global"], 'str');
+      setupTypedInput('value', ["num","msg","flow","global"], 'num');
+      setupTypedInput('count', ["num","msg","flow","global"], 'num');
       setupTypedInput('msgProperty', ["msg"], 'msg');
     }
   });
 </script>
 
-<script type="text/html" data-template-name="FINS Write">
+<script type="text/html" data-template-name="FINS Fill">
   <div class="form-row">
-    <label style="width:120px;" for="node-input-name"><i class="icon-tag"></i> <span data-i18n="write.label.name"> Name</span></label>
+    <label style="width:120px;" for="node-input-name"><i class="icon-tag"></i> <span data-i18n="fill.label.name"> Name</span></label>
     <input style="width:70%" type="text" id="node-input-name" placeholder="Name">
   </div>
   <div class="form-row">
-    <label style="width:120px;" for="node-input-connection"><i class="icon-globe"></i><span data-i18n="write.label.connection"> Connection</span></label>
+    <label style="width:120px;" for="node-input-connection"><i class="icon-globe"></i><span data-i18n="fill.label.connection"> Connection</span></label>
     <input style="width:70%" type="text" id="node-input-connection">
   </div>
   <div class="form-row">
-    <label style="width:120px;" for="node-input-address"><i class="fa fa-envelope"></i> <span data-i18n="write.label.address"> Address</span></label>
+    <label style="width:120px;" for="node-input-address"><i class="fa fa-envelope"></i> <span data-i18n="fill.label.address"> Address</span></label>
     <input type="hidden" id="node-input-addressType">
     <input style="width:70%" type="text" id="node-input-address" placeholder="">
   </div>
   <div class="form-row">
-    <label style="width:120px;" for="node-input-data"><i class="fa fa-ellipsis-h"></i> <span data-i18n="write.label.data"> Data</span></label>
-    <input type="hidden" id="node-input-dataType">
-    <input style="width:70%" type="text" id="node-input-data" placeholder="">
+    <label style="width:120px;" for="node-input-value"><i class="fa fa-ellipsis-h"></i> <span data-i18n="fill.label.value"> Value</span></label>
+    <input type="hidden" id="node-input-valueType">
+    <input style="width:70%" type="text" id="node-input-value" placeholder="">
   </div>
   <div class="form-row">
-    <label style="width:120px;" for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="write.label.msgProperty"> Output property</span></label>
+    <label style="width:120px;" for="node-input-count"><i class="fa fa-sort-numeric-asc"></i> <span data-i18n="fill.label.count"> Count</span></label>
+    <input type="hidden" id="node-input-countType">
+    <input style="width:70%" type="text" id="node-input-count" placeholder="">
+  </div>
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="fill.label.msgProperty"> Output property</span></label>
     <input type="hidden" id="node-input-msgPropertyType">
     <input style="width:70%" type="text" id="node-input-msgProperty" placeholder="payload">
   </div>    
 </script>
 
-<script type="text/html" data-help-name="FINS Write">
-  <p>Write 16 bit WORD or BIT data to an OMRON PLC using FINS protocol</p>
+<script type="text/html" data-help-name="FINS Fill">
+  <p>Fill consecutive 16 bit WORD values in an OMRON PLC using FINS protocol</p>
   <h3>Properties</h3>
   <dl class="message-properties">
     <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
     <dd>The PLC connection</dd>
     <dt class="required">Address<span class="property-type">string</span></dt>
-    <dd>PLC WORD or BIT Memory Address. Depending on the PLC Type selected in the connection, the address will use the PLC standard addressing format. Some examples...
+    <dd>PLC WORD Memory Address. Depending on the PLC Type selected in the connection, the address will use the PLC standard addressing format. Some examples...
       <ul>
         <li>CIO2000 - Core IO WORD 2000</li>
-        <li>CIO50.0 - Core IO WORD 50 BIT 0</li>
         <li>D100 - Data Memory WORD 100</li>
-        <li>D20.15 - Data Memory WORD 20 BIT 15</li>
         <li>E0_200 - Extended Data Memory Bank 0, WORD 200</li>
-        <li>E1_5.7 - Extended Data Memory Bank 1, WORD 5 BIT 7</li>
         <li>H10 - Holding Relay WORD 10</li>
-        <li>H9.9 - Holding Relay WORD 9 BIT 9</li>
         <li>W500 - Work Area WORD 500</li>
-        <li>W0.0 - Work Area WORD 0 BIT 0</li>
-        <li>A264 - Auxiliary Area WORD 264</li>
-        <li>A0.1 - Auxiliary Area WORD 0 BIT 1</li>
-        <li>DR10 - Data Register WORD 10</li>
-        <li>IR0 - Index Register WORD 0</li>
+        <li>A600 - Auxiliary Area WORD 600</li>
         <li>T50 - Timer 50 PV</li>
         <li>C50 - Counter 50 PV</li>
       </ul>
     </dd>
-    <dt class="required">Data<span class="property-type">number | Number[] | bool | bool[] | string</span></dt>
-    <dd>Data to write to the PLC</dd>
+    <dt class="required">Value<span class="property-type">number | Number[] | bool | bool[] | string</span></dt>
+    <dd>Value to fill in the PLC Address[count] specified</dd>
+    <dt class="required">Count<span class="property-type">string</span></dt>
+    <dd>The number of PLC Memory addresses to fill with the specified value</dd>
   </dl>
 
   <h3>Output</h3>
@@ -140,21 +151,6 @@ SOFTWARE.
     Upon success, the SID (Sequence ID) will be sent in <code>msg.payload</code>. This should be a number between 1 and 254. <br>
     Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
   </p>  
-  <h3>Details</h3>
-  <p>
-    Incoming <code>data</code> must be one of the following...
-    <ul>
-      <li>bool (This will be written to the BIT address provided)</li>
-      <li>bool array (This will be written to the PLC starting at the BIT address provided)</li>
-      <li>integer (This will be written to the WORD address provided)</li>
-      <li>integer array (This will be written to the PLC starting at the WORD address provided)</li>
-      <li>string containing a WORD or BIT value (This will be written to the PLC at the WORD or BIT address provided)</li>
-      <li>comma separated list of WORD or BIT values (These will be written to the PLC starting at the WORD or BIT address provided)</li>
-    </ul>
-    The count of elements in <code>data</code> determines how many PLC addresses are modified. e.g.<br>
-    * if <code>data</code> is <code>[1,2,3,4,5]</code> and <code>D100</code> is the <code>address</code>, then D100 ~ D104 will be modified.<br>  
-    * if <code>data</code> is <code>[true,false,1,0]</code> and <code>CIO7.7</code> is the <code>address</code>, then CIO7.7 ~ CIO7.10 will be modified.<br>  
-  </p>
   <h3>Connection control</h3>
   <p><i>INFO: To open / close the FINS connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS node.</i></p>
 

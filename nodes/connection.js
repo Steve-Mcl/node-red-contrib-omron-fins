@@ -86,6 +86,11 @@ module.exports = function (RED) {
     this.host = resolveSetting(config.host, RED);
     this.port = resolveSetting(config.port, RED);
     this.options = {};
+    if(config.protocolType == "env") {
+      this.options.protocol = resolveSetting(config.protocol, RED);
+    } else {
+      this.options.protocol = config.protocolType || "udp";
+    }
     this.options.MODE = config.MODE ? config.MODE : "CSCJ";
     this.options.ICF = isInt(resolveSetting(config.ICF, RED), constants.DefaultFinsHeader.ICF);
     this.options.DNA = isInt(resolveSetting(config.DNA, RED), constants.DefaultFinsHeader.DNA);

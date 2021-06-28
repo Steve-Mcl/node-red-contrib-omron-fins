@@ -25,15 +25,17 @@ SOFTWARE.
 
 module.exports = function (RED) {
     const connection_pool = require("../connection_pool.js");
-    function omronWrite(config) {
+    function omronTransfer(config) {
         RED.nodes.createNode(this, config);
         const node = this;
         node.name = config.name;
         node.connection = config.connection;
-        node.address = config.address || "topic";
-        node.addressType = config.addressType || "msg";
-        node.data = config.data || "payload";
-        node.dataType = config.dataType || "msg";
+        node.address = config.address || "";
+        node.addressType = config.addressType || "str";
+        node.address2 = config.address2 || "";
+        node.address2Type = config.addressType || "str";
+        node.count = config.count || "1";
+        node.countType = config.countType || "num";
         node.msgProperty = config.msgProperty || "payload";
         node.msgPropertyType = config.msgPropertyType || "str";
         node.connectionConfig = RED.nodes.getNode(node.connection);
@@ -50,9 +52,9 @@ module.exports = function (RED) {
             node.status({ fill: "red", shape: "dot", text: statusText });
         }
 
-        function nodeStatusParameterError(err, msg, propName) {
-            nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value");
-        }
+        // function nodeStatusParameterError(err, msg, propName) {
+        //     nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value");
+        // }
 
         if (this.connectionConfig) {
 
@@ -103,7 +105,7 @@ module.exports = function (RED) {
 
                         return;
                     }
-                    var cmdExpected = "0102";
+                    var cmdExpected = "0105";
                     if (!sequence || !sequence.response || sequence.response.endCode !== "0000" || sequence.response.command !== cmdExpected) {
                         var ecd = "bad response";
                         if (sequence.response && sequence.response.command !== cmdExpected)
@@ -158,26 +160,24 @@ module.exports = function (RED) {
                     return;
                 }
 
-                /* ****************  Get address Parameter **************** */
+                /* ****************  Get address (source) Parameter **************** */
                 const address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
-
-                /* ****************  Get data Parameter **************** */
-                let data;
-                RED.util.evaluateNodeProperty(node.data, node.dataType, node, msg, function (err, value) {
-                    if (err) {
-                        nodeStatusParameterError(err, msg, "data");
-                        return;//halt flow!
-                    } else {
-                        data = value;
-                    }
-                });
-
                 if (!address || typeof address != "string") {
-                    nodeStatusError(null, msg, "address is not valid");
+                    nodeStatusError(null, msg, "Source address is not valid");
                     return;
                 }
-                if (data == null) {
-                    nodeStatusError(null, msg, "data is not valid");
+                /* ****************  Get address2 (destination) Parameter **************** */
+                const address2 = RED.util.evaluateNodeProperty(node.address2, node.address2Type, node, msg);
+                if (!address2 || typeof address2 != "string") {
+                    nodeStatusError(null, msg, "Destination address is not valid");
+                    return;
+                }
+
+                /* ****************  Get fill count Parameter **************** */
+                const count = RED.util.evaluateNodeProperty(node.count, node.countType, node, msg);
+                const transferCount = parseInt(count);
+                if (count == null || isNaN(transferCount) || transferCount <= 0) {
+                    nodeStatusError(`Transfer count '${count} is invalid'`, msg, `Transfer count '${count} is invalid'`);
                     return;
                 }
 
@@ -185,17 +185,20 @@ module.exports = function (RED) {
                 let sid;
                 try {
                     opts.callback = finsReply;
-                    sid = node.client.write(address, data, opts, msg);
-                    if (sid > 0) node.status({ fill: "yellow", shape: "ring", text: "write" });
+                    //srcAddress, dstAddress, count, opts, tag
+                    sid = node.client.transfer(address, address2, count, opts, msg);
+                    if (sid > 0) node.status({ fill: "yellow", shape: "ring", text: "transfer" });
                 } catch (error) {
 
                     nodeStatusError(error, msg, "error");
                     const debugMsg = {
-                        info: "write.js-->on 'input' - try this.client.write(address, data, finsReply)",
+                        info: "transfer.js-->on 'input' - try this.client.transfer(address, address2, count, opts, msg)",
                         connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
                         sid: sid,
                         address: address,
-                        data: data,
+                        address2: address2,
+                        count: count,
+                        opts: opts,
                         error: error
                     };
                     node.debug(debugMsg);
@@ -210,8 +213,8 @@ module.exports = function (RED) {
         }
 
     }
-    RED.nodes.registerType("FINS Write", omronWrite);
-    omronWrite.prototype.close = function () {
+    RED.nodes.registerType("FINS Transfer", omronTransfer);
+    omronTransfer.prototype.close = function () {
         if (this.client) {
             this.client.disconnect();
         }

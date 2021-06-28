@@ -1,4 +1,3 @@
-/* eslint-disable no-inner-declarations */
 /*
 MIT License
 
@@ -25,15 +24,17 @@ SOFTWARE.
 
 module.exports = function (RED) {
     const connection_pool = require("../connection_pool.js");
-    function omronWrite(config) {
+    function omronFill(config) {
         RED.nodes.createNode(this, config);
         const node = this;
         node.name = config.name;
         node.connection = config.connection;
-        node.address = config.address || "topic";
-        node.addressType = config.addressType || "msg";
-        node.data = config.data || "payload";
-        node.dataType = config.dataType || "msg";
+        node.address = config.address || "";
+        node.addressType = config.addressType || "str";
+        node.count = config.count || "1";
+        node.countType = config.countType || "num";
+        node.value = config.value || "0";
+        node.valueType = config.valueType || "num";
         node.msgProperty = config.msgProperty || "payload";
         node.msgPropertyType = config.msgPropertyType || "str";
         node.connectionConfig = RED.nodes.getNode(node.connection);
@@ -50,9 +51,6 @@ module.exports = function (RED) {
             node.status({ fill: "red", shape: "dot", text: statusText });
         }
 
-        function nodeStatusParameterError(err, msg, propName) {
-            nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value");
-        }
 
         if (this.connectionConfig) {
 
@@ -77,11 +75,11 @@ module.exports = function (RED) {
             this.client.on('close', function () {
                 node.status({ fill: "red", shape: "dot", text: "not connected" });
             });
-            // eslint-disable-next-line no-unused-vars
-            this.client.on('initialised', function (options) {
+            this.client.on('initialised', function () {
                 node.status({ fill: "yellow", shape: "dot", text: "initialised" });
             });
 
+            // eslint-disable-next-line no-inner-declarations
             function finsReply(err, sequence) {
                 if (!err && !sequence) {
                     return;
@@ -103,7 +101,7 @@ module.exports = function (RED) {
 
                         return;
                     }
-                    var cmdExpected = "0102";
+                    var cmdExpected = "0103";
                     if (!sequence || !sequence.response || sequence.response.endCode !== "0000" || sequence.response.command !== cmdExpected) {
                         var ecd = "bad response";
                         if (sequence.response && sequence.response.command !== cmdExpected)
@@ -160,24 +158,24 @@ module.exports = function (RED) {
 
                 /* ****************  Get address Parameter **************** */
                 const address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
-
-                /* ****************  Get data Parameter **************** */
-                let data;
-                RED.util.evaluateNodeProperty(node.data, node.dataType, node, msg, function (err, value) {
-                    if (err) {
-                        nodeStatusParameterError(err, msg, "data");
-                        return;//halt flow!
-                    } else {
-                        data = value;
-                    }
-                });
-
                 if (!address || typeof address != "string") {
                     nodeStatusError(null, msg, "address is not valid");
                     return;
                 }
-                if (data == null) {
-                    nodeStatusError(null, msg, "data is not valid");
+
+                /* ****************  Get fill count Parameter **************** */
+                const count = RED.util.evaluateNodeProperty(node.count, node.countType, node, msg);
+                const fillCount = parseInt(count);
+                if (count == null || isNaN(fillCount) || fillCount <= 0) {
+                    nodeStatusError(`fill count '${count} is invalid'`, msg, `fill count '${count} is invalid'`);
+                    return;
+                }
+
+                /* ****************  Get fill value Parameter **************** */
+                const value = RED.util.evaluateNodeProperty(node.value, node.valueType, node, msg);
+                const fillValue = parseInt(value);
+                if (value == null || isNaN(fillValue)) {
+                    nodeStatusError(`fill value '${value} is invalid'`, msg, `fill value '${value} is invalid'`);
                     return;
                 }
 
@@ -185,17 +183,20 @@ module.exports = function (RED) {
                 let sid;
                 try {
                     opts.callback = finsReply;
-                    sid = node.client.write(address, data, opts, msg);
-                    if (sid > 0) node.status({ fill: "yellow", shape: "ring", text: "write" });
+                    //fill(address, value, count, opts, tag)
+                    sid = node.client.fill(address, fillValue, fillCount, opts, msg);
+                    if (sid > 0) node.status({ fill: "yellow", shape: "ring", text: "fill" });
                 } catch (error) {
 
                     nodeStatusError(error, msg, "error");
                     const debugMsg = {
-                        info: "write.js-->on 'input' - try this.client.write(address, data, finsReply)",
+                        info: "fill.js-->on 'input' - try this.client.fill(address, fillValue, fillCount, opts, msg)",
                         connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
                         sid: sid,
                         address: address,
-                        data: data,
+                        fillValue: fillValue,
+                        fillCount: fillCount,
+                        opts: opts,
                         error: error
                     };
                     node.debug(debugMsg);
@@ -210,8 +211,8 @@ module.exports = function (RED) {
         }
 
     }
-    RED.nodes.registerType("FINS Write", omronWrite);
-    omronWrite.prototype.close = function () {
+    RED.nodes.registerType("FINS Fill", omronFill);
+    omronFill.prototype.close = function () {
         if (this.client) {
             this.client.disconnect();
         }

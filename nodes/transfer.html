@@ -1,0 +1,167 @@
+<!-- 
+MIT License
+
+Copyright (c) 2019, 2020, 2021 Steve-Mcl
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. 
+-->
+
+
+<script type="text/javascript">
+  RED.nodes.registerType('FINS Transfer', {
+    category: 'OMRON',
+    color: '#0090d4',
+    defaults: {
+      name: { value: "" },
+      connection: { type: "FINS Connection", required: true },
+      addressType: { value: "str" },
+      address: { value: "", required: true, validate: RED.validators.typedInput("addressType") },
+      address2Type: { value: "str" },
+      address2: { value: "", required: true, validate: RED.validators.typedInput("addressType") },
+      countType: { value: "num" },
+      count: { value: "1", required: true, validate: RED.validators.typedInput("countType") },
+      msgPropertyType: { value: "str" },
+      msgProperty: { value: "payload", required: true, validate: RED.validators.typedInput("msgPropertyType") },
+    },
+    inputs: 1,
+    outputs: 1,
+    inputLabels: "Trigger request",
+    outputLabels: "Write result",
+    align: "right",
+    icon: "write.png",
+    label: function () {
+      var addr1OK = this.addressType == "str" && this.address != "";
+      var addr2OK = this.address2Type == "str" && this.address2 != "";
+      var cntOK = this.countType == "num" && this.count != "";
+      var count = this.countType == "num" ? this.count : "?"
+      var dynLabel = "FINS Transfer";
+      if(addr1OK && addr2OK && cntOK) {
+        dynLabel = `Transfer: ${this.address} → ${this.address2}, ${count} WD${count > 1 ? "s" : ""}`
+      }
+      return this.name || dynLabel;
+    },
+    oneditprepare: function () {
+      var node = this;
+      function setupTypedInput(varName, types, def) {
+        debugger
+        let varSel = '#node-input-' + varName;
+        let typeSel = varSel + 'Type';
+        let varVal = node[varName];
+        let typeVal = node[varName + 'Type'];
+
+        if (typeVal == null || typeVal === 'none') {
+            typeVal = def;
+        } else if (typeVal === 'string') {
+            typeVal = "str";
+        } else if (typeVal === 'number') {
+            typeVal = "num";
+        }
+        $(typeSel).val(typeVal);
+        $(varSel).typedInput({
+            default: def,
+            typeField: $(typeSel),
+            types: types
+        });
+        return $(varSel).typedInput('type', typeVal);
+      }
+
+      setupTypedInput('address', ["str", "msg","flow","global",], 'str');
+      setupTypedInput('address2', ["str", "msg","flow","global"], 'str');
+      setupTypedInput('count', ["msg","flow","global","num"], 'num');
+      setupTypedInput('msgProperty', ["msg"], 'msg');
+    }
+  });
+</script>
+
+<script type="text/html" data-template-name="FINS Transfer">
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-name"><i class="icon-tag"></i> <span data-i18n="transfer.label.name"> Name</span></label>
+    <input style="width:70%" type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-connection"><i class="icon-globe"></i><span data-i18n="transfer.label.connection"> Connection</span></label>
+    <input style="width:70%" type="text" id="node-input-connection">
+  </div>
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-address"><i class="fa fa-envelope"></i> <span data-i18n="transfer.label.address"> Source</span></label>
+    <input type="hidden" id="node-input-addressType">
+    <input style="width:70%" type="text" id="node-input-address" placeholder="D100">
+  </div>
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-address2"><i class="fa fa-envelope"></i> <span data-i18n="transfer.label.address2"> Destination</span></label>
+    <input type="hidden" id="node-input-address2Type">
+    <input style="width:70%" type="text" id="node-input-address2" placeholder="D200">
+  </div>
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-count"><i class="fa fa-sort-numeric-asc"></i> <span data-i18n="transfer.label.count"> Count</span></label>
+    <input type="hidden" id="node-input-countType">
+    <input style="width:70%" type="text" id="node-input-count" placeholder="">
+  </div>
+  <div class="form-row">
+    <label style="width:120px;" for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="transfer.label.msgProperty"> Output property</span></label>
+    <input type="hidden" id="node-input-msgPropertyType">
+    <input style="width:70%" type="text" id="node-input-msgProperty" placeholder="payload">
+  </div>    
+</script>
+
+<script type="text/html" data-help-name="FINS Transfer">
+  <p>Transfer consecutive 16 bit WORD values from one area to another in an OMRON PLC using FINS protocol</p>
+  <h3>Properties</h3>
+  <dl class="message-properties">
+    <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
+    <dd>The PLC connection</dd>
+    <dt class="required">Source<span class="property-type">string</span></dt>
+    <dd>PLC WORD Address where data will be copied from. Depending on the PLC Type selected in the connection, the address will use the PLC standard addressing format. Some examples...
+      <ul>
+        <li>CIO2000 - Core IO WORD 2000</li>
+        <li>D100 - Data Memory WORD 100</li>
+        <li>E0_200 - Extended Data Memory Bank 0, WORD 200</li>
+        <li>H10 - Holding Relay WORD 10</li>
+        <li>W400 - Work Area WORD 400</li>
+        <li>A500 - Auxiliary Area WORD 500</li>
+        <li>T50 - Timer 50 PV</li>
+        <li>C50 - Counter 50 PV</li>
+      </ul>
+    </dd>
+    <dt class="required">Destination<span class="property-type">string</span></dt>
+    <dd>PLC WORD Address where data will be copied to. Depending on the PLC Type selected in the connection, the address will use the PLC standard addressing format. Some examples...
+      <ul>
+        <li>CIO3000 - Core IO WORD 3000</li>
+        <li>D200 - Data Memory WORD 200</li>
+        <li>E0_300 - Extended Data Memory Bank 0, WORD 300</li>
+        <li>H20 - Holding Relay WORD 20</li>
+        <li>W500 - Work Area WORD 500</li>
+        <li>A600 - Auxiliary Area WORD 600</li>
+        <li>T60 - Timer 60 PV</li>
+        <li>C60 - Counter 60 PV</li>
+      </ul>
+    </dd>
+    <dt class="required">Count<span class="property-type">number</span></dt>
+    <dd>Number of values to copy from <code>source</code> to <code>destination</code></dd>
+  </dl>
+
+  <h3>Output</h3>
+  <p>
+    Upon success, the SID (Sequence ID) will be sent in <code>msg.payload</code>. This should be a number between 1 and 254. <br>
+    Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
+  </p>  
+  <h3>Connection control</h3>
+  <p><i>INFO: To open / close the FINS connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS node.</i></p>
+
+</script>

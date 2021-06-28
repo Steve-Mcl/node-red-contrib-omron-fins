@@ -1,6 +1,6 @@
 {
     "name": "node-red-contrib-omron-fins",
-    "version": "0.4.1",
+    "version": "0.5.0-beta.0",
     "author": {
         "name": "Steve-Mcl",
         "email": "44235289+Steve-Mcl@users.noreply.github.com"
@@ -15,12 +15,19 @@
     "node-red": {
         "nodes": {
             "omronRead": "nodes/read.js",
+            "omronReadMultiple": "nodes/readMultiple.js",
             "omronWrite": "nodes/write.js",
-            "omronConnection": "nodes/connection.js"
+            "omronFile": "nodes/fill.js",
+            "omronTransfer": "nodes/transfer.js",
+            "omronConnection": "nodes/connection.js",
+            "omronControl": "nodes/control.js"
         }
     },
     "license": "MIT",
     "dependencies": {
-        "omron-fins": "0.4.0-beta.1"
+        "omron-fins": "0.5.0-beta.0"
+    },
+    "devDependencies": {
+        "eslint": "^7.29.0"
     }
 }

@@ -1,3 +1,4 @@
+/* eslint-disable no-inner-declarations */
 /*
 MIT License
 
@@ -23,11 +24,12 @@ SOFTWARE.
 */
 
 module.exports = function (RED) {
-  var connection_pool = require("../connection_pool.js");
+  const connection_pool = require("../connection_pool.js");
+  const dataParser = require("./_parser");
 
   function omronRead(config) {
     RED.nodes.createNode(this, config);
-    var node = this;
+    const node = this;
     node.name = config.name;
     node.topic = config.topic;
     node.connection = config.connection;
@@ -42,29 +44,43 @@ module.exports = function (RED) {
     node.connectionConfig = RED.nodes.getNode(node.connection);
 
     if (this.connectionConfig) {
-      var options = Object.assign({}, node.connectionConfig.options);
+      const options = Object.assign({}, node.connectionConfig.options);
       node.client = connection_pool.get(this, this.connectionConfig.port, this.connectionConfig.host, options);
       node.status({ fill: "yellow", shape: "ring", text: "initialising" });
 
       this.client.on('error', function (error, seq) {
         node.status({ fill: "red", shape: "ring", text: "error" });
-        node.error(error, (seq && seq.tag ? tag : seq) );
+        node.error(error, (seq && seq.tag ? seq.tag : seq) );
       });
       this.client.on('full', function () {
         node.throttleUntil = Date.now() + 1000;
-        node.warn("Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of reads and writes to this connection.");
+        node.warn("Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of operations to this connection.");
         node.status({ fill: "red", shape: "dot", text: "queue full" });
       });
-      this.client.on('open', function (error) {
+      // eslint-disable-next-line no-unused-vars
+      this.client.on('open', function (remoteInfo) {
         node.status({ fill: "green", shape: "dot", text: "connected" });
       });
-      this.client.on('close', function (error) {
+      this.client.on('close', function () {
         node.status({ fill: "red", shape: "dot", text: "not connected" });
       });
-      this.client.on('initialised', function (error) {
+      // eslint-disable-next-line no-unused-vars
+      this.client.on('initialised', function (options) {
         node.status({ fill: "yellow", shape: "dot", text: "initialised" });
       });
 
+      /* ****************  Node status **************** */
+      function nodeStatusError (err, msg, statusText) {
+        if (err) {
+          node.error(err, msg);
+        } else {
+          node.error(statusText, msg);
+        }
+        node.status({ fill: "red", shape: "dot", text: statusText });
+      }
+
+      const cmdExpected = "0101";
+      
       function finsReply(err, sequence) {
         if(!err && !sequence) {
           return;
@@ -72,65 +88,30 @@ module.exports = function (RED) {
         var origInputMsg = (sequence && sequence.tag) || {};
         try {
           if (err || sequence.error) {
-            node.status({ fill: "red", shape: "ring", text: "error" });
-            node.error(err || sequence.error, origInputMsg);
+            nodeStatusError(err || sequence.error, origInputMsg, "error")
             return;
           }          
           if (sequence.timeout) {
-            node.status({ fill: "red", shape: "ring", text: "timeout" });
-            node.error("timeout", origInputMsg);
+            nodeStatusError("timeout", origInputMsg, "timeout");
             return;
           }
-          var cmdExpected = "0101";
           if (sequence.response && sequence.sid != sequence.response.sid) {
-            node.status({ fill: "red", shape: "dot", text: "Incorrect SID" });
-            node.error(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg);
+            nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, "Incorrect SID")
             return;
           }          
           if (!sequence || !sequence.response || sequence.response.endCode !== "0000" || sequence.response.command !== cmdExpected) {
             var ecd = "bad response";
             if (sequence.response && sequence.response.command !== cmdExpected)
-              ecd = `Unexpected response. Expected command '${cmdExpected}' but received " ${sequence.response.command}`;
+              ecd = `Unexpected response. Expected command '${cmdExpected}' but received '${sequence.response.command}'`;
             else if (sequence.response && sequence.response.endCodeDescription)
               ecd = sequence.response.endCodeDescription;
-            node.status({ fill: "red", shape: "dot", text: ecd });
-            node.error(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg);
+            nodeStatusError(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg, ecd);
             return;
           }
 
-          var kvMaker = function (pkt) {
-            let kvs = {};
-            if (pkt.response.values) {
-              let iWD = 0;
-              for (let x in pkt.response.values) {
-                let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, 0);
-                kvs[item_addr] = pkt.response.values[x];
-                iWD++;
-              }
-            }
-            return kvs;
-          };
-
-          var kvMakerBits = function (pkt, asBool) {
-            let kvs = {};
-            if (pkt.response.values) {
-              let iWD = 0;
-              let iBit = 0;
-              for (let x in pkt.response.values) {
-                let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, iBit);
-                kvs[item_addr] = asBool ? !!pkt.response.values[x] : pkt.response.values[x];
-                iBit++;
-                if(pkt.request.address.Bit + iBit > 15) {
-                  iBit = -pkt.request.address.Bit;
-                  iWD++;
-                }
-              }
-            }
-            return kvs;
-          };
           //backwards compatibility, try to upgrade users current setting
           //the output type was originally a sub option 'list'
-          var outputFormat = "buffer";
+          let outputFormat = "buffer";
           const builtInReturnTypes = ['buffer', 'signed', 'unsigned', 'signedkv', 'unsignedkv'];
           if(node.outputFormatType == "list" && builtInReturnTypes.indexOf(node.outputFormat+'') >= 0) {
               outputFormat = node.outputFormat;
@@ -140,7 +121,7 @@ module.exports = function (RED) {
             outputFormat = RED.util.evaluateNodeProperty(node.outputFormat, node.outputFormatType, node, origInputMsg);
           }
 
-          var value;
+          let value;
           switch (outputFormat) {
             case "signed":
               if(sequence.request.address.isBitAddress) {
@@ -158,19 +139,19 @@ module.exports = function (RED) {
               }
               break;
             case "signedkv":
-              value = kvMaker(sequence);
+              value = dataParser.keyValueMaker(node.client.FinsAddressToString, sequence.request.address, sequence.response.values);
               if(sequence.request.address.isBitAddress) {
-                value = kvMakerBits(sequence, true);
+                value = dataParser.keyValueMakerBits(node.client.FinsAddressToString, sequence.request.address, sequence.response.values, true);
               } else {
-                value = kvMaker(sequence);
+                value = dataParser.keyValueMaker(node.client.FinsAddressToString, sequence.request.address, sequence.response.values);
               }
               break;
             case "unsignedkv":
               if(sequence.request.address.isBitAddress) {
-                value = kvMakerBits(sequence, false);
+                value = dataParser.keyValueMakerBits(node.client.FinsAddressToString, sequence.request.address, sequence.response.values, false);
               } else {
                 sequence.response.values = Uint16Array.from(sequence.response.values);
-                value = kvMaker(sequence);
+                value = dataParser.keyValueMaker(node.client.FinsAddressToString, sequence.request.address, sequence.response.values);
               }
               break;
             default: //buffer
@@ -199,8 +180,7 @@ module.exports = function (RED) {
           node.status({ fill: "green", shape: "dot", text: "done" });
           node.send(origInputMsg);
         } catch (error) {
-          node.status({ fill: "red", shape: "ring", text: "error" });
-          node.error(error, origInputMsg);
+          nodeStatusError(error, origInputMsg, "error");
         }
       }
 
@@ -223,47 +203,43 @@ module.exports = function (RED) {
           return;
         }
 
-        /* ****************  Node status **************** */
-        var nodeStatusError = function (err, msg, statusText) {
-          if (err) {
-            node.error(err, msg);
-          } else {
-            node.error(statusText, msg);
-          }
-          node.status({ fill: "red", shape: "dot", text: statusText });
-        };
 
         /* ****************  Get address Parameter **************** */
-        var address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
+        const address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
 
         /* ****************  Get count Parameter **************** */
-        var count = RED.util.evaluateNodeProperty(node.count, node.countType, node, msg);
+        let count = RED.util.evaluateNodeProperty(node.count, node.countType, node, msg);
 
         if (!address || typeof address != "string") {
           nodeStatusError(null, msg, "address is not valid");
           return;
         }
         count = parseInt(count);
-        if (Number.isNaN(count)) {
+        if (Number.isNaN(count) || count <= 0) {
           nodeStatusError(null, msg, "count is not valid");
           return;
         }
 
+        const opts = msg.finsOptions || {};
+        let sid;
         try {
-          let sid = this.client.read(address, parseInt(count), finsReply, msg);
+          opts.callback = finsReply;
+          sid = node.client.read(address, count, opts, msg);
           if (sid > 0) {
             node.status({ fill: "yellow", shape: "ring", text: "reading" });
           }
         } catch (error) {
           node.sid = null;
           nodeStatusError(error, msg, "error");
-          let dbgmsg = {
+          const debugMsg = {
             info: "read.js-->on 'input'",
             connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
+            sid: sid,
             address: address,
-            size: count,
+            count: count,
+            opts: opts,
           };
-          console.debug(dbgmsg);
+          node.debug(debugMsg);
           return;
         }
 
