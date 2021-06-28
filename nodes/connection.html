@@ -101,7 +101,7 @@ SOFTWARE.
       
       <dt>DA1</dt>
       <dd>
-        Destination Node: Enter 0 for "this node". Often this is set to the value of the last octect of the PLCs IP Address. 
+        Destination Node: Enter 0 for "this node". Often this is set to the value of the last octet of the PLCs IP Address. 
         Ultimately, if none zero, it should match the node number set on the PLC.
       </dd>
       
@@ -112,12 +112,12 @@ SOFTWARE.
       
       <dt>SNA</dt>
       <dd>
-        Source Network Address: Enter 0 for "this network", 0x1~0x7f for remote. Check the PLC Netowrk Routing table.
+        Source Network Address: Enter 0 for "this network", 0x1~0x7f for remote. Check the PLC Network Routing table.
       </dd>
       
       <dt>SA1</dt>
       <dd>
-        Source Node: For direct communication, try entering 0 or setting it to the value of last octect of node-red IP Address.
+        Source Node: For direct communication, try entering 0 or setting it to the value of last octet of node-red IP Address.
         Depending on the network subnet mask and the FINS conversion method setting, it may be necessary to enter the node-red IP and Node Address number in the PLC FINS/UDP IP Address Table
       </dd>
       
@@ -150,7 +150,18 @@ SOFTWARE.
       SA2: { value: 0x0},//, validate: RED.validators.number() },
     },
     label: function () {
-      return this.name || this.host + ":" + this.port || "FINS Connection";
+      if(this.name) {
+        return this.name;
+      }
+      let l = this.host + ":" + this.port;
+      if(this.protocolType == "env") {
+        return l;
+      } else if (this.protocolType == "tcp") {
+        l += " (tcp)";
+      } else {
+        l += " (udp)";
+      }
+      return l;
     },
     oneditprepare() {
       $("#node-config-input-protocol").typedInput({
