@@ -114,7 +114,7 @@ module.exports = function (RED) {
                     const builtInReturnTypes = ['buffer', 'signed', 'unsigned', 'signedkv', 'unsignedkv'];
                     if (node.outputFormatType == 'list' && builtInReturnTypes.indexOf(node.outputFormat + '') >= 0) {
                         outputFormat = node.outputFormat;
-                    } else if (builtInReturnTypes.indexOf(node.outputFormatType + '') > 0) {
+                    } else if (builtInReturnTypes.indexOf(node.outputFormatType + '') >= 0) {
                         outputFormat = node.outputFormatType;
                     } else {
                         outputFormat = RED.util.evaluateNodeProperty(node.outputFormat, node.outputFormatType, node, origInputMsg);
