@@ -61,7 +61,7 @@ module.exports = {
         const p = port || options.port;
 
         node.log(`[FINS] adding new connection to pool ~ ${id}`);
-        const client = fins.FinsClient(parseInt(p), h, options);
+        let client = fins.FinsClient(parseInt(p), h, options);
         let connecting = false;
 
         options.autoConnect = options.autoConnect == undefined ? true : options.autoConnect;
@@ -139,6 +139,7 @@ module.exports = {
             connecting = false;
           }
         });
+        // eslint-disable-next-line no-unused-vars
         client.on('close', function (err) {
           node.log(`[FINS] connection closed ~ ${id}`);
           connecting = false;
@@ -149,7 +150,7 @@ module.exports = {
                 node.log(`[FINS] autoConnect call from  error handler ~ ${id}`);
                 finsClientConnection.connect();
               }
-            },  5000); //TODO: Parameterise
+            },  5000); //TODO: Parametrise
           }
         });
 

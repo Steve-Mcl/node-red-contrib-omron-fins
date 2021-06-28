@@ -1,3 +1,4 @@
+/* eslint-disable no-inner-declarations */
 /*
 MIT License
 
