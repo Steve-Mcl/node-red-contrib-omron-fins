@@ -25,6 +25,7 @@ SOFTWARE.
 
 module.exports = function (RED) {
   const connection_pool = require("../connection_pool.js");
+  const dataParser = require("./_parser");
 
   function omronRead(config) {
     RED.nodes.createNode(this, config);
@@ -49,20 +50,22 @@ module.exports = function (RED) {
 
       this.client.on('error', function (error, seq) {
         node.status({ fill: "red", shape: "ring", text: "error" });
-        node.error(error, (seq && seq.tag ? tag : seq) );
+        node.error(error, (seq && seq.tag ? seq.tag : seq) );
       });
       this.client.on('full', function () {
         node.throttleUntil = Date.now() + 1000;
-        node.warn("Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of reads and writes to this connection.");
+        node.warn("Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of operations to this connection.");
         node.status({ fill: "red", shape: "dot", text: "queue full" });
       });
-      this.client.on('open', function (error) {
+      // eslint-disable-next-line no-unused-vars
+      this.client.on('open', function (remoteInfo) {
         node.status({ fill: "green", shape: "dot", text: "connected" });
       });
-      this.client.on('close', function (error) {
+      this.client.on('close', function () {
         node.status({ fill: "red", shape: "dot", text: "not connected" });
       });
-      this.client.on('initialised', function (error) {
+      // eslint-disable-next-line no-unused-vars
+      this.client.on('initialised', function (options) {
         node.status({ fill: "yellow", shape: "dot", text: "initialised" });
       });
 
@@ -74,40 +77,10 @@ module.exports = function (RED) {
           node.error(statusText, msg);
         }
         node.status({ fill: "red", shape: "dot", text: statusText });
-      };
+      }
 
       const cmdExpected = "0101";
-      function kvMaker(pkt) {
-        let kvs = {};
-        if (pkt.response.values) {
-          let iWD = 0;
-          for (let x in pkt.response.values) {
-            let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, 0);
-            kvs[item_addr] = pkt.response.values[x];
-            iWD++;
-          }
-        }
-        return kvs;
-      };
-
-      function kvMakerBits(pkt, asBool) {
-        let kvs = {};
-        if (pkt.response.values) {
-          let iWD = 0;
-          let iBit = 0;
-          for (let x in pkt.response.values) {
-            let item_addr = node.client.FinsAddressToString(pkt.request.address, iWD, iBit);
-            kvs[item_addr] = asBool ? !!pkt.response.values[x] : pkt.response.values[x];
-            iBit++;
-            if(pkt.request.address.Bit + iBit > 15) {
-              iBit = -pkt.request.address.Bit;
-              iWD++;
-            }
-          }
-        }
-        return kvs;
-      };
-
+      
       function finsReply(err, sequence) {
         if(!err && !sequence) {
           return;
@@ -166,19 +139,19 @@ module.exports = function (RED) {
               }
               break;
             case "signedkv":
-              value = kvMaker(sequence);
+              value = dataParser.keyValueMaker(node.client.FinsAddressToString, sequence.request.address, sequence.response.values);
               if(sequence.request.address.isBitAddress) {
-                value = kvMakerBits(sequence, true);
+                value = dataParser.keyValueMakerBits(node.client.FinsAddressToString, sequence.request.address, sequence.response.values, true);
               } else {
-                value = kvMaker(sequence);
+                value = dataParser.keyValueMaker(node.client.FinsAddressToString, sequence.request.address, sequence.response.values);
               }
               break;
             case "unsignedkv":
               if(sequence.request.address.isBitAddress) {
-                value = kvMakerBits(sequence, false);
+                value = dataParser.keyValueMakerBits(node.client.FinsAddressToString, sequence.request.address, sequence.response.values, false);
               } else {
                 sequence.response.values = Uint16Array.from(sequence.response.values);
-                value = kvMaker(sequence);
+                value = dataParser.keyValueMaker(node.client.FinsAddressToString, sequence.request.address, sequence.response.values);
               }
               break;
             default: //buffer
@@ -242,28 +215,31 @@ module.exports = function (RED) {
           return;
         }
         count = parseInt(count);
-        if (Number.isNaN(count)) {
+        if (Number.isNaN(count) || count <= 0) {
           nodeStatusError(null, msg, "count is not valid");
           return;
         }
 
+        const opts = msg.finsOptions || {};
+        let sid;
         try {
-          const opts = msg.finsOptions || {};
           opts.callback = finsReply;
-          const sid = this.client.read(address, parseInt(count), opts, msg);
+          sid = node.client.read(address, count, opts, msg);
           if (sid > 0) {
             node.status({ fill: "yellow", shape: "ring", text: "reading" });
           }
         } catch (error) {
           node.sid = null;
           nodeStatusError(error, msg, "error");
-          const dbgmsg = {
+          const debugMsg = {
             info: "read.js-->on 'input'",
             connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
+            sid: sid,
             address: address,
-            size: count,
+            count: count,
+            opts: opts,
           };
-          console.debug(dbgmsg);
+          node.debug(debugMsg);
           return;
         }
 

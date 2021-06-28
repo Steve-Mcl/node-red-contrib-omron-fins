@@ -1,0 +1,218 @@
+<!-- 
+MIT License
+
+Copyright (c) 2019, 2020, 2021 Steve-Mcl
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. 
+-->
+
+<style>
+  .omron-fins-form-row > label {
+    width:120px !important;
+  }
+  .omron-fins-form-row > div.form-tips {
+    display: inline-block !important;
+    border-radius: 4px  !important;
+    margin-top: 4px;
+    width: calc(70% - 18px);
+    overflow: auto;
+  }
+</style>
+
+<script type="text/javascript">
+  RED.nodes.registerType('FINS Read Multiple', {
+    category: 'OMRON',
+    color: '#0090d4',
+    defaults: {
+      name: { value: "" },
+      connection: { type: "FINS Connection", required: true },
+      addressType: { value: "str" },
+      address: { value: "", required: true, validate: RED.validators.typedInput("addressType") },
+      msgPropertyType: { value: "msg" },
+      msgProperty: { value: "payload", required: true, validate: RED.validators.typedInput("msgPropertyType") },
+      outputFormatType: { value: "list" },
+      outputFormat: { value: "unsignedkv", validate: RED.validators.typedInput("outputFormatType") },
+    },
+    inputs: 1,
+    outputs: 1,
+    inputLabels: "Trigger request",
+    outputLabels: "Returned values",
+    align: "left",
+    icon: "read.png",
+    label: function () {
+      var niceTrim = function(s) {
+        var maxParts = 3;
+        if(s && typeof s == "string") {
+            var parts = s.split(",");
+            if(parts.length <= maxParts) {
+                return s;
+            }
+            var showParts = parts.slice(0, maxParts);
+            var count = parts.length - showParts.length; 
+            s = showParts.join(",");
+            if(count > 0) {
+                s = s + " + " + count + " more";
+            }
+        }
+        return s;
+      }
+      return this.name || ((this.addressType == "str" && this.address != "") ? "Read: " + niceTrim(this.address) : "FINS Read Multiple");
+    },
+    oneditprepare: function () {
+      var node = this;
+      function setupTypedInput(varName, types, def) {
+        let varSel = '#node-input-' + varName;
+        let typeSel = varSel + 'Type';
+        let varVal = node[varName];
+        let typeVal = node[varName + 'Type'];
+
+        if (typeVal == null || typeVal === 'none') {
+          typeVal = def;
+        } else if (typeVal === 'string') {
+          typeVal = "str";
+        } else if (typeVal === 'number') {
+          typeVal = "num";
+        }
+        $(typeSel).val(typeVal);
+        $(varSel).typedInput({
+          default: def,
+          typeField: $(typeSel),
+          types: types
+        });
+        return $(varSel).typedInput('type', typeVal);
+      }
+
+      setupTypedInput('address', ["str", "msg", "flow", "global"], 'str');
+      const $msgPropertyField = setupTypedInput('msgProperty', ["msg"], 'msg');
+      $("#node-input-msgProperty").typedInput({types:[{label:"msg.", value:"str"}]});
+
+      const outputListOpt = {
+        // buffer: { label: "Buffer", value: 'buffer', title: 'Sends a buffer in the msg property specified by "Output property"', hasValue: false},
+        signed: { label: "Array", value: 'signed', title: 'Sends an array of 16 bit signed or true/false bool values in the msg property specified by "Output property"', hasValue: false},
+        unsigned: { label: "Unsigned Array", value: 'unsigned', title: 'Sends an array of 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property"', hasValue: false},
+        signedkv: { label: "Key/value", value: 'signedkv', title: 'Sends an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property"', hasValue: false},
+        unsignedkv: { label: "Unsigned key/value", value: 'unsignedkv', title: 'Sends an object with PLC address keys and 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property"', hasValue: false},
+      }
+      const outputFormatOptions =  Object.values(outputListOpt);
+      outputFormatOptions.push('msg', 'flow', 'global', 'env');
+      const $outputFormatField = setupTypedInput('outputFormat', outputFormatOptions, 'unsignedkv');
+
+      $outputFormatField.on("change", function() {
+        let t = $outputFormatField.typedInput("type") || "";
+        let v = (t && outputListOpt[t]) ? outputListOpt[t].title : "";
+        if(!v) {
+          v = "The variable should resolve to one of the following...";
+          let opts = Object.values(outputListOpt);
+          opts.forEach(function(e) {
+            v += '<br>• <span style="font-family: monospace; color: var(--red-ui-text-color-code);">' + e.value + "</span> - for output type " + e.label;
+          })
+          v += '<br><br><i>NOTE: Output will default to type <span style="font-family: monospace; color: var(--red-ui-text-color-code);">unsignedkv</span> if not recognised<i>'
+        }
+        $("#omron-fins-outputFormat-tip").html(v)
+      });
+    },
+    oneditresize() {
+      setTimeout(() => {
+        console.log("updating tip max-width")
+        $("#omron-fins-outputFormat-tip").css("max-width", "unset");
+      }, 250);
+    }
+  });
+</script>
+<script type="text/html" data-template-name="FINS Read Multiple">
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-name"><i class="icon-tag"></i> <span data-i18n="read.label.name"> Name</span></label>
+    <input style="width:70%" type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-connection"><i class="icon-globe"></i><span data-i18n="read.label.connection"> Connection</span></label>
+    <input style="width:70%" type="text" id="node-input-connection">
+  </div>
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-address"><i class="fa fa-envelope"></i> <span data-i18n="read.label.address"> Addresses</span></label>
+    <input style="width:70%" type="text" id="node-input-address" placeholder="">
+    <input type="hidden" id="node-input-addressType">
+  </div>
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.msgProperty"> Output property</span></label>
+    <input type="hidden" id="node-input-msgPropertyType">
+    <input style="width:70%" type="text" id="node-input-msgProperty" placeholder="payload">
+  </div>  
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-outputFormat"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.outputFormat"> Output</span></label>
+    <input type="hidden" id="node-input-outputFormatType">
+    <input style="width:70%" type="text" id="node-input-outputFormat" placeholder="">
+    <br>
+    <label>&nbsp;</label>
+    <div id="omron-fins-outputFormat-tip" class="form-tips"></div>
+  </div>   
+</script>
+
+<script type="text/html" data-help-name="FINS Read Multiple">
+  <p>Read Multiple 16 bit WORD or BIT data from an OMRON PLCs using FINS protocol</p>
+  <h3>Properties</h3>
+  <dl class="message-properties">
+    <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
+    <dd>The PLC connection</dd>
+    <dt class="required">Address<span class="property-type">string</span></dt>
+    <dd>PLC WORD or BIT Memory Address. Depending on the PLC Type selected in the connection, the address will use the PLC standard addressing format. Some examples...
+      <ul>
+        <li>CIO2000 - Core IO WORD 2000</li>
+        <li>CIO50.0 - Core IO WORD 50 BIT 0</li>
+        <li>D100 - Data Memory WORD 100</li>
+        <li>D20.15 - Data Memory WORD 20 BIT 15</li>
+        <li>E0_200 - Extended Data Memory Bank 0, WORD 200</li>
+        <li>E1_5.7 - Extended Data Memory Bank 1, WORD 5 BIT 7</li>
+        <li>H10 - Holding Relay WORD 10</li>
+        <li>H9.9 - Holding Relay WORD 9 BIT 9</li>
+        <li>W500 - Work Area WORD 500</li>
+        <li>W0.0 - Work Area WORD 0 BIT 0</li>
+        <li>A264 - Auxiliary Area WORD 264</li>
+        <li>A0.1 - Auxiliary Area WORD 0 BIT 1</li>
+        <li>DR10 - Data Register WORD 10</li>
+        <li>IR0 - Index Register WORD 0</li>
+        <li>T50 - Timer 50 PV</li>
+        <li>C50 - Counter 50 PV</li>
+      </ul>
+    </dd>
+    <dt class="required">Output property<span class="property-type">string</span></dt>
+    <dd>Specify where the result should be written</dd>
+    <dt class="required">Output<span class="property-type">string</span></dt>
+    <dd>Specify the type of result required.
+      <ul>
+        <!-- <li>Buffer: Sends a buffer. NOTE: bit values will be occupy 1 byte in the buffer. To automate this option, use the string value <code>buffer</code></li> -->
+        <li>Array: Sends an array of 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>signed</code></li>
+        <li>Unsigned Array: Sends an array of 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property". To automate this option, use the string value <code>unsigned</code></li>
+        <li>Signed key/value: Sends an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>signedkv</code></li>
+        <li>Unsigned key/value: Sends an object with PLC address keys and 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property". To automate this option, use the string value <code>unsignedkv</code></li>
+      </ul>
+    </dd>
+  </dl>    
+  <h3>Output</h3>
+  <dl class="message-properties">
+    <dt>payload <span class="property-type">array</span></dt>
+    <dd>
+      The values read from the PLC.<br>
+      Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
+    </dd>
+  </dl>
+  <h3>Connection control</h3>
+  <p><i>INFO: To open / close the FINS connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS node.</i></p>
+
+</script>

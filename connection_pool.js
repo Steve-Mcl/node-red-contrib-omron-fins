@@ -88,6 +88,53 @@ module.exports = {
             const sid = client.read(address, parseInt(len), opts, tag);
             return sid;
           },
+          readMultiple: function (addresses, opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.readMultiple(addresses, opts, tag);
+            return sid;
+          },
+          fill: function (address, value, count, opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.fill(address, value, parseInt(count), opts, tag);
+            return sid;
+          },
+          transfer: function (srcAddress, dstAddress, count, opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.transfer(srcAddress, dstAddress, parseInt(count), opts, tag);
+            return sid;
+          },
+          status: function (opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.status(opts, tag);
+            return sid;
+          },
+          run: function (opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.run(opts, tag);
+            return sid;
+          },
+          stop: function (opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.stop(opts, tag);
+            return sid;
+          },
+          cpuUnitDataRead: function (opts, tag) {
+            if (!client.connected && options.preventAutoReconnect) {
+              throw new Error("Not connected!")
+            }
+            const sid = client.cpuUnitDataRead(opts, tag);
             return sid;
           },
           getAutoConnect: function () {

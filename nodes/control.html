@@ -1,0 +1,178 @@
+<!-- 
+MIT License
+
+Copyright (c) 2021 Steve-Mcl
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. 
+-->
+
+<style>
+  .omron-fins-form-row > label {
+    width:120px !important;
+  }
+  .omron-fins-form-row > div.form-tips {
+    display: inline-block !important;
+    border-radius: 4px  !important;
+    margin-top: 4px;
+    width: calc(70% - 18px);
+    overflow: auto;
+  }
+</style>
+
+<script type="text/javascript">
+  RED.nodes.registerType('FINS Control', {
+    category: 'OMRON',
+    color: '#0090d4',
+    defaults: {
+      name: { value: "" },
+      connection: { type: "FINS Connection", required: true },
+      msgPropertyType: { value: "msg" },
+      msgProperty: { value: "payload", validate: RED.validators.typedInput("msgPropertyType") },
+      commandType: { value: "status" },
+      command: { value: "status" },
+    },
+    inputs: 1,
+    outputs: 1,
+    inputLabels: "Trigger request",
+    outputLabels: "Returned values",
+    align: "left",
+    icon: "read.png",
+    label: function () {
+      return this.name || (["status","cpu-unit-data-read", "stop", "run"].indexOf(this.commandType) >= 0 ? this.commandType : "FINS Control");
+    },
+    oneditprepare: function () {
+      var node = this;
+      function setupTypedInput(varName, types, def) {
+        let varSel = '#node-input-' + varName;
+        let typeSel = varSel + 'Type';
+        let varVal = node[varName];
+        let typeVal = node[varName + 'Type'];
+
+        if (typeVal == null || typeVal === 'none') {
+          typeVal = def;
+        } else if (typeVal === 'string') {
+          typeVal = "str";
+        } else if (typeVal === 'number') {
+          typeVal = "num";
+        }
+        $(typeSel).val(typeVal);
+        $(varSel).typedInput({
+          default: def,
+          typeField: $(typeSel),
+          types: types
+        });
+        return $(varSel).typedInput('type', typeVal);
+      }
+
+      const $msgPropertyField = setupTypedInput('msgProperty', ["msg"], 'msg');
+      $("#node-input-msgProperty").typedInput({types:[{label:"msg.", value:"str"}]});
+
+      const controlOption = {
+        "status": { label: "Read CPU UNIT Status", value: 'status', title: 'Gets the PLC status and returns it to the msg property specified by "Output property"', hasValue: false},
+        "cpu-unit-data-read": { label: "Read CPU UNIT DATA", value: 'cpu-unit-data-read', title: 'Gets the PLC unit data (PLC Mode, Version, UNITS fitted etc) and returns it to the msg property specified by "Output property"', hasValue: false},
+        "stop": { label: "Set PLC Mode to STOP/PROGRAM", value: 'stop', title: 'Sets the PLC to STOP/PROGRAM mode.', hasValue: false},
+        "run": { label: "Set PLC Mode to RUN/MONITOR", value: 'run', title: 'Sets the PLC to RUN/MONITOR mode.', hasValue: false},
+      }
+      if(Object.keys(controlOption).indexOf(node.command+'') >= 0) {
+        node.commandType = node.command;
+        node.command = "";
+      } else {
+        node.commandType = "status";
+      }
+      
+      const commandOptions =  Object.values(controlOption);
+      commandOptions.push('msg', 'flow', 'global', 'env');
+      const $commandField = setupTypedInput('command', commandOptions, 'buffer');
+
+      $commandField.on("change", function() {
+        let t = $commandField.typedInput("type") || "";
+        let v = (t && controlOption[t]) ? controlOption[t].title : "";
+        if(!v) {
+          v = "The variable should resolve to one of the following...";
+          let opts = Object.values(controlOption);
+          opts.forEach(function(e) {
+            v += '<br>• <span style="font-family: monospace; color: var(--red-ui-text-color-code);">' + e.value + "</span> - for output type " + e.label;
+          })
+          v += '<br><br><i>NOTE: Output will default to type <span style="font-family: monospace; color: var(--red-ui-text-color-code);">buffer</span> if not recognised<i>'
+        }
+        $("#omron-fins-command-tip").html(v)
+      });
+    },
+    oneditresize() {
+      setTimeout(() => {
+        console.log("updating tip max-width")
+        $("#omron-fins-command-tip").css("max-width", "unset");
+      }, 250);
+    }
+  });
+</script>
+<script type="text/html" data-template-name="FINS Control">
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-name"><i class="icon-tag"></i> <span data-i18n="read.label.name"> Name</span></label>
+    <input style="width:70%" type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-connection"><i class="icon-globe"></i><span data-i18n="read.label.connection"> Connection</span></label>
+    <input style="width:70%" type="text" id="node-input-connection">
+  </div>
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-msgProperty"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.msgProperty"> Output property</span></label>
+    <input type="hidden" id="node-input-msgPropertyType">
+    <input style="width:70%" type="text" id="node-input-msgProperty" placeholder="payload">
+  </div>  
+  <div class="form-row omron-fins-form-row">
+    <label for="node-input-command"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.command"> Command</span></label>
+    <input type="hidden" id="node-input-commandType">
+    <input style="width:70%" type="text" id="node-input-command" placeholder="">
+    <br>
+    <label>&nbsp;</label>
+    <div id="omron-fins-command-tip" class="form-tips"></div>
+  </div>   
+</script>
+
+<script type="text/html" data-help-name="FINS Control">
+  <p>Read 16 bit WORD or BIT data from an OMRON PLCs using FINS protocol</p>
+  <h3>Properties</h3>
+  <dl class="message-properties">
+    <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
+    <dd>The PLC connection</dd>
+    <dt class="required">Output property<span class="property-type">string</span></dt>
+    <dd>Specify where the result should be written</dd>
+    <dt class="required">Command<span class="property-type">string</span></dt>
+    <dd>Specify the type of command.
+      <ul>
+        <li>Read CPU UNIT Status: Sends a buffer. To automate this option, use the string value <code>status</code></li>
+        <li>Read CPU UNIT Data: Sends an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>cpu-unit-data-read</code></li>
+        <li>Set PLC Mode to STOP/PROGRAM: Sends an array of 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>stop</code></li>
+        <li>Set PLC Mode to RUN/MONITOR: Sends an array of 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property". To automate this option, use the string value <code>run</code></li>
+      </ul>
+    </dd>
+  </dl>    
+  <h3>Output</h3>
+  <dl class="message-properties">
+    <dt>payload <span class="property-type">array</span></dt>
+    <dd>
+      The values read from the PLC.<br>
+      Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
+    </dd>
+  </dl>
+  <h3>Connection control</h3>
+  <p><i>INFO: To open / close the FINS connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS node.</i></p>
+
+</script>

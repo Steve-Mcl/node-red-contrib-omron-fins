@@ -15,12 +15,18 @@
     "node-red": {
         "nodes": {
             "omronRead": "nodes/read.js",
+            "omronReadMultiple": "nodes/readMultiple.js",
             "omronWrite": "nodes/write.js",
-            "omronConnection": "nodes/connection.js"
+            "omronFile": "nodes/fill.js",
+            "omronTransfer": "nodes/transfer.js",
+            "omronConnection": "nodes/connection.js",
+            "omronControl": "nodes/control.js"
         }
     },
     "license": "MIT",
     "dependencies": {
-        "omron-fins": "0.4.0-beta.0"
+    },
+    "devDependencies": {
+        "eslint": "^7.29.0"
     }
 }
