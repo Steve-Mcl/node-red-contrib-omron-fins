@@ -25,7 +25,7 @@ SOFTWARE.
 
 module.exports = function (RED) {
     const connection_pool = require('../connection_pool.js');
-    const controlTypes = ['status', 'cpu-unit-data-read', 'stop', 'run'];
+    const commandTypes = ['status', 'cpu-unit-data-read', 'stop', 'run'];
     function omronControl(config) {
         RED.nodes.createNode(this, config);
         const node = this;
@@ -36,8 +36,8 @@ module.exports = function (RED) {
         node.addressType = config.addressType || 'msg';
         node.count = config.count || 1;
         node.countType = config.countType || 'num';
-        node.control = config.control || 'status';
-        node.controlType = config.controlType || 'status';
+        node.command = config.command || 'status';
+        node.commandType = config.commandType || 'status';
         node.msgProperty = config.msgProperty || 'payload';
         node.msgPropertyType = config.msgPropertyType || 'str';
         node.connectionConfig = RED.nodes.getNode(node.connection);
@@ -149,24 +149,24 @@ module.exports = function (RED) {
                     return;
                 }
 
-                let control = 'status';
-                if (controlTypes.indexOf(node.controlType + '') > 0) {
-                    control = node.controlType;
+                let command = 'status';
+                if (commandTypes.indexOf(node.commandType + '') >= 0) {
+                    command = node.commandType;
                 } else {
-                    control = RED.util.evaluateNodeProperty(node.control, node.controlType, node, msg);
+                    command = RED.util.evaluateNodeProperty(node.command, node.commandType, node, msg);
                 }
 
-                if (controlTypes.indexOf(control) < 0) {
-                    nodeStatusError(null, msg, `control command ${control} is not valid`);
+                if (commandTypes.indexOf(command+'') < 0) {
+                    nodeStatusError(`command '${command?command:''}' is not valid`, msg, `command '${command?command:''}' is not valid`);
                     return;
                 }
 
                 let clientFn;
-                switch (control) {
+                switch (command) {
                 case 'status':
                 case 'stop':
                 case 'run':
-                    clientFn = node.client[control];
+                    clientFn = node.client[command];
                     break;
                 case 'cpu-unit-data-read':
                     clientFn = node.client.cpuUnitDataRead;

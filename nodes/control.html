@@ -89,16 +89,10 @@ SOFTWARE.
         "stop": { label: "Set PLC Mode to STOP/PROGRAM", value: 'stop', title: 'Sets the PLC to STOP/PROGRAM mode.', hasValue: false},
         "run": { label: "Set PLC Mode to RUN/MONITOR", value: 'run', title: 'Sets the PLC to RUN/MONITOR mode.', hasValue: false},
       }
-      if(Object.keys(controlOption).indexOf(node.command+'') >= 0) {
-        node.commandType = node.command;
-        node.command = "";
-      } else {
-        node.commandType = "status";
-      }
-      
+
       const commandOptions =  Object.values(controlOption);
       commandOptions.push('msg', 'flow', 'global', 'env');
-      const $commandField = setupTypedInput('command', commandOptions, 'buffer');
+      const $commandField = setupTypedInput('command', commandOptions, 'status');
 
       $commandField.on("change", function() {
         let t = $commandField.typedInput("type") || "";
@@ -107,9 +101,8 @@ SOFTWARE.
           v = "The variable should resolve to one of the following...";
           let opts = Object.values(controlOption);
           opts.forEach(function(e) {
-            v += '<br>• <span style="font-family: monospace; color: var(--red-ui-text-color-code);">' + e.value + "</span> - for output type " + e.label;
+            v += '<br>• <span style="font-family: monospace; color: var(--red-ui-text-color-code);">' + e.value + "</span> - " + e.label;
           })
-          v += '<br><br><i>NOTE: Output will default to type <span style="font-family: monospace; color: var(--red-ui-text-color-code);">buffer</span> if not recognised<i>'
         }
         $("#omron-fins-command-tip").html(v)
       });
