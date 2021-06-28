@@ -28,6 +28,8 @@
         "omron-fins": "0.5.0-beta.0"
     },
     "devDependencies": {
-        "eslint": "^7.29.0"
+        "eslint": "^7.29.0",
+        "eslint-config-airbnb-base": "^14.2.1",
+        "eslint-plugin-import": "^2.23.4"
     }
 }

@@ -24,47 +24,48 @@ SOFTWARE.
 */
 
 module.exports = function (RED) {
-    const connection_pool = require("../connection_pool.js");
+    const connection_pool = require('../connection_pool.js');
     // const dataParser = require("./_parser");
 
     function omronReadMultiple(config) {
         RED.nodes.createNode(this, config);
         const node = this;
+        const cmdExpected = '0104';
         node.name = config.name;
         node.topic = config.topic;
         node.connection = config.connection;
-        node.address = config.address || "";
-        node.addressType = config.addressType || "str";
-        node.outputFormat = config.outputFormat || "buffer";
-        node.outputFormatType = config.outputFormatType || "list";
-        node.msgProperty = config.msgProperty || "payload";
-        node.msgPropertyType = config.msgPropertyType || "str";
+        node.address = config.address || '';
+        node.addressType = config.addressType || 'str';
+        node.outputFormat = config.outputFormat || 'buffer';
+        node.outputFormatType = config.outputFormatType || 'list';
+        node.msgProperty = config.msgProperty || 'payload';
+        node.msgPropertyType = config.msgPropertyType || 'str';
         node.connectionConfig = RED.nodes.getNode(node.connection);
 
         if (this.connectionConfig) {
             const options = Object.assign({}, node.connectionConfig.options);
             node.client = connection_pool.get(this, this.connectionConfig.port, this.connectionConfig.host, options);
-            node.status({ fill: "yellow", shape: "ring", text: "initialising" });
+            node.status({ fill: 'yellow', shape: 'ring', text: 'initialising' });
 
             this.client.on('error', function (error, seq) {
-                node.status({ fill: "red", shape: "ring", text: "error" });
+                node.status({ fill: 'red', shape: 'ring', text: 'error' });
                 node.error(error, (seq && seq.tag ? seq.tag : seq));
             });
             this.client.on('full', function () {
                 node.throttleUntil = Date.now() + 1000;
-                node.warn("Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of operations to this connection.");
-                node.status({ fill: "red", shape: "dot", text: "queue full" });
+                node.warn('Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of operations to this connection.');
+                node.status({ fill: 'red', shape: 'dot', text: 'queue full' });
             });
             // eslint-disable-next-line no-unused-vars
             this.client.on('open', function (remoteInfo) {
-                node.status({ fill: "green", shape: "dot", text: "connected" });
+                node.status({ fill: 'green', shape: 'dot', text: 'connected' });
             });
             this.client.on('close', function () {
-                node.status({ fill: "red", shape: "dot", text: "not connected" });
+                node.status({ fill: 'red', shape: 'dot', text: 'not connected' });
             });
             // eslint-disable-next-line no-unused-vars
             this.client.on('initialised', function (options) {
-                node.status({ fill: "yellow", shape: "dot", text: "initialised" });
+                node.status({ fill: 'yellow', shape: 'dot', text: 'initialised' });
             });
             /* ****************  Node status **************** */
             function nodeStatusError(err, msg, statusText) {
@@ -73,40 +74,38 @@ module.exports = function (RED) {
                 } else {
                     node.error(statusText, msg);
                 }
-                node.status({ fill: "red", shape: "dot", text: statusText });
+                node.status({ fill: 'red', shape: 'dot', text: statusText });
             }
-
-            const cmdExpected = "0104";
 
             function finsReply(err, sequence) {
                 if (!err && !sequence) {
                     return;
                 }
-                var origInputMsg = (sequence && sequence.tag) || {};
+                const origInputMsg = (sequence && sequence.tag) || {};
                 try {
                     if (err || sequence.error) {
-                        nodeStatusError(err || sequence.error, origInputMsg, "error")
+                        nodeStatusError(err || sequence.error, origInputMsg, 'error')
                         return;
                     }
                     if (sequence.timeout) {
-                        nodeStatusError("timeout", origInputMsg, "timeout");
+                        nodeStatusError('timeout', origInputMsg, 'timeout');
                         return;
                     }
                     if (sequence.response && sequence.sid != sequence.response.sid) {
-                        nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, "Incorrect SID")
+                        nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, 'Incorrect SID')
                         return;
                     }
-                    if (!sequence || !sequence.response || sequence.response.endCode !== "0000" || sequence.response.command !== cmdExpected) {
-                        var ecd = "bad response";
-                        if (sequence.response && sequence.response.command !== cmdExpected)
+                    if (!sequence || !sequence.response || sequence.response.endCode !== '0000' || sequence.response.command.commandCode !== cmdExpected) {
+                        let ecd = 'bad response';
+                        if (sequence.response && sequence.response.command.commandCode !== cmdExpected)
                             ecd = `Unexpected response. Expected command '${cmdExpected}' but received '${sequence.response.command}'`;
                         else if (sequence.response && sequence.response.endCodeDescription)
                             ecd = sequence.response.endCodeDescription;
-                        nodeStatusError(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg, ecd);
+                        nodeStatusError(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : '????'}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ''}`, origInputMsg, ecd);
                         return;
                     }
 
-                    let outputFormat = "unsignedkv";
+                    let outputFormat = 'unsignedkv';
                     const builtInReturnTypes = ['signed', 'unsigned', 'signedkv', 'unsignedkv'];
                     if (builtInReturnTypes.indexOf(node.outputFormatType + '') > 0) {
                         outputFormat = node.outputFormatType;
@@ -115,7 +114,7 @@ module.exports = function (RED) {
                     }
 
                     if (sequence.response.values.length != sequence.request.address.length) {
-                        nodeStatusError(`Requested count '${sequence.request.address.length}' different to returned count '${sequence.response.values.length}`, origInputMsg, "error");
+                        nodeStatusError(`Requested count '${sequence.request.address.length}' different to returned count '${sequence.response.values.length}`, origInputMsg, 'error');
                         return;
                     }
 
@@ -128,34 +127,34 @@ module.exports = function (RED) {
                         const addrString = node.client.FinsAddressToString(addr);
 
                         switch (outputFormat) {
-                            case "signed":
-                                if (addr.isBitAddress) {
-                                    arrValues.push(!!val);
-                                } else {
-                                    arrValues.push(val);
-                                }
-                                break;
-                            case "unsigned":
-                                if (addr.isBitAddress) {
-                                    arrValues.push(val);
-                                } else {
-                                    arrValues.push(Uint16Array.from([val])[0]);
-                                }
-                                break;
-                            case "signedkv":
-                                if (addr.isBitAddress) {
-                                    objValues[addrString] = (val == 1 || val == true) ? 1 : 0;
-                                } else {
-                                    objValues[addrString] = val;
-                                }
-                                break;
-                            default: //case "unsignedkv": //default
-                                if (addr.isBitAddress) {
-                                    objValues[addrString] = (val == 1 || val == true) ? 1 : 0;
-                                } else {
-                                    objValues[addrString] = Uint16Array.from([val])[0];
-                                }
-                                break;
+                        case 'signed':
+                            if (addr.isBitAddress) {
+                                arrValues.push(!!val);
+                            } else {
+                                arrValues.push(val);
+                            }
+                            break;
+                        case 'unsigned':
+                            if (addr.isBitAddress) {
+                                arrValues.push(val);
+                            } else {
+                                arrValues.push(Uint16Array.from([val])[0]);
+                            }
+                            break;
+                        case 'signedkv':
+                            if (addr.isBitAddress) {
+                                objValues[addrString] = (val == 1 || val == true) ? 1 : 0;
+                            } else {
+                                objValues[addrString] = val;
+                            }
+                            break;
+                        default: //case "unsignedkv": //default
+                            if (addr.isBitAddress) {
+                                objValues[addrString] = (val == 1 || val == true) ? 1 : 0;
+                            } else {
+                                objValues[addrString] = Uint16Array.from([val])[0];
+                            }
+                            break;
                         }
                     }
 
@@ -177,10 +176,10 @@ module.exports = function (RED) {
                     origInputMsg.fins.replyTime = sequence.replyTime;
                     origInputMsg.fins.timeTaken = sequence.timeTaken;
 
-                    node.status({ fill: "green", shape: "dot", text: "done" });
+                    node.status({ fill: 'green', shape: 'dot', text: 'done' });
                     node.send(origInputMsg);
                 } catch (error) {
-                    nodeStatusError(error, origInputMsg, "error");
+                    nodeStatusError(error, origInputMsg, 'error');
                 }
             }
 
@@ -206,8 +205,8 @@ module.exports = function (RED) {
 
                 /* ****************  Get address Parameter **************** */
                 const address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
-                if (!address || typeof address != "string") {
-                    nodeStatusError(null, msg, "Address is not valid");
+                if (!address || typeof address != 'string') {
+                    nodeStatusError(null, msg, 'Address is not valid');
                     return;
                 }
 
@@ -217,11 +216,11 @@ module.exports = function (RED) {
                     opts.callback = finsReply;
                     sid = node.client.readMultiple(address, opts, msg);
                     if (sid > 0) {
-                        node.status({ fill: "yellow", shape: "ring", text: "reading" });
+                        node.status({ fill: 'yellow', shape: 'ring', text: 'reading' });
                     }
                 } catch (error) {
                     node.sid = null;
-                    nodeStatusError(error, msg, "error");
+                    nodeStatusError(error, msg, 'error');
                     const debugMsg = {
                         info: "readMultiple.js-->on 'input'",
                         connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
@@ -234,13 +233,13 @@ module.exports = function (RED) {
                 }
 
             });
-            node.status({ fill: "green", shape: "ring", text: "ready" });
+            node.status({ fill: 'green', shape: 'ring', text: 'ready' });
 
         } else {
-            node.status({ fill: "red", shape: "dot", text: "configuration not setup" });
+            node.status({ fill: 'red', shape: 'dot', text: 'configuration not setup' });
         }
     }
-    RED.nodes.registerType("FINS Read Multiple", omronReadMultiple);
+    RED.nodes.registerType('FINS Read Multiple', omronReadMultiple);
     omronReadMultiple.prototype.close = function () {
         if (this.client) {
             this.client.disconnect();

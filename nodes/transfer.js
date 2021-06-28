@@ -24,20 +24,21 @@ SOFTWARE.
 */
 
 module.exports = function (RED) {
-    const connection_pool = require("../connection_pool.js");
+    const connection_pool = require('../connection_pool.js');
     function omronTransfer(config) {
         RED.nodes.createNode(this, config);
         const node = this;
+        const cmdExpected = '0105';
         node.name = config.name;
         node.connection = config.connection;
-        node.address = config.address || "";
-        node.addressType = config.addressType || "str";
-        node.address2 = config.address2 || "";
-        node.address2Type = config.addressType || "str";
-        node.count = config.count || "1";
-        node.countType = config.countType || "num";
-        node.msgProperty = config.msgProperty || "payload";
-        node.msgPropertyType = config.msgPropertyType || "str";
+        node.address = config.address || '';
+        node.addressType = config.addressType || 'str';
+        node.address2 = config.address2 || '';
+        node.address2Type = config.addressType || 'str';
+        node.count = config.count || '1';
+        node.countType = config.countType || 'num';
+        node.msgProperty = config.msgProperty || 'payload';
+        node.msgPropertyType = config.msgPropertyType || 'str';
         node.connectionConfig = RED.nodes.getNode(node.connection);
 
         /* ****************  Node status **************** */
@@ -49,7 +50,7 @@ module.exports = function (RED) {
                 console.error(statusText);
                 node.error(statusText, msg);
             }
-            node.status({ fill: "red", shape: "dot", text: statusText });
+            node.status({ fill: 'red', shape: 'dot', text: statusText });
         }
 
         // function nodeStatusParameterError(err, msg, propName) {
@@ -58,61 +59,61 @@ module.exports = function (RED) {
 
         if (this.connectionConfig) {
 
-            node.status({ fill: "yellow", shape: "ring", text: "initialising" });
+            node.status({ fill: 'yellow', shape: 'ring', text: 'initialising' });
             const options = Object.assign({}, node.connectionConfig.options);
             this.client = connection_pool.get(this, this.connectionConfig.port, this.connectionConfig.host, options);
 
             this.client.on('error', function (error, seq) {
-                console.log("Error: ", error);
-                node.status({ fill: "red", shape: "ring", text: "error" });
+                console.log('Error: ', error);
+                node.status({ fill: 'red', shape: 'ring', text: 'error' });
                 node.error(error, (seq && seq.tag ? seq.tag : seq));
             });
             this.client.on('full', function () {
-                node.status({ fill: "red", shape: "dot", text: "queue full" });
+                node.status({ fill: 'red', shape: 'dot', text: 'queue full' });
                 node.throttleUntil = Date.now() + 1000;
-                node.warn("Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of operations to this connection.");
+                node.warn('Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of operations to this connection.');
             });
             // eslint-disable-next-line no-unused-vars
             this.client.on('open', function (remoteInfo) {
-                node.status({ fill: "green", shape: "dot", text: "connected" });
+                node.status({ fill: 'green', shape: 'dot', text: 'connected' });
             });
             this.client.on('close', function () {
-                node.status({ fill: "red", shape: "dot", text: "not connected" });
+                node.status({ fill: 'red', shape: 'dot', text: 'not connected' });
             });
             // eslint-disable-next-line no-unused-vars
             this.client.on('initialised', function (options) {
-                node.status({ fill: "yellow", shape: "dot", text: "initialised" });
+                node.status({ fill: 'yellow', shape: 'dot', text: 'initialised' });
             });
 
             function finsReply(err, sequence) {
                 if (!err && !sequence) {
                     return;
                 }
-                var origInputMsg = (sequence && sequence.tag) || {};
+                const origInputMsg = (sequence && sequence.tag) || {};
                 try {
                     if (err || sequence.error) {
-                        node.status({ fill: "red", shape: "ring", text: "error" });
-                        nodeStatusError(err || sequence.error, origInputMsg, "error");
+                        node.status({ fill: 'red', shape: 'ring', text: 'error' });
+                        nodeStatusError(err || sequence.error, origInputMsg, 'error');
 
                         return;
                     }
                     if (sequence.timeout) {
-                        nodeStatusError("timeout", origInputMsg, "timeout");
+                        nodeStatusError('timeout', origInputMsg, 'timeout');
                         return;
                     }
                     if (sequence.response && sequence.sid != sequence.response.sid) {
-                        nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, "Incorrect SID");
+                        nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, 'Incorrect SID');
 
                         return;
                     }
-                    var cmdExpected = "0105";
-                    if (!sequence || !sequence.response || sequence.response.endCode !== "0000" || sequence.response.command !== cmdExpected) {
-                        var ecd = "bad response";
-                        if (sequence.response && sequence.response.command !== cmdExpected)
+
+                    if (!sequence || !sequence.response || sequence.response.endCode !== '0000' || sequence.response.command.commandCode !== cmdExpected) {
+                        let ecd = 'bad response';
+                        if (sequence.response && sequence.response.command.commandCode !== cmdExpected)
                             ecd = `Unexpected response. Expected command '${cmdExpected}' but received '${sequence.response.command}'`;
                         else if (sequence.response && sequence.response.endCodeDescription)
                             ecd = sequence.response.endCodeDescription;
-                        nodeStatusError(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : "????"}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ""}`, origInputMsg, ecd);
+                        nodeStatusError(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : '????'}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ''}`, origInputMsg, ecd);
                         return;
                     }
 
@@ -123,8 +124,11 @@ module.exports = function (RED) {
                     origInputMsg.fins = {};
                     origInputMsg.fins.name = node.name; //node name for user logging / routing
                     origInputMsg.fins.request = {
-                        address: sequence.request.address,
-                        dataToBeWritten: sequence.request.dataToBeWritten,
+                        command: sequence.request.command,
+                        options: sequence.request.options,
+                        srcAddress: sequence.request.srcAddress,
+                        dstAddress: sequence.request.dstAddress,
+                        count: sequence.request.count,
                         sid: sequence.request.sid,
                     };
                     origInputMsg.fins.response = sequence.response;
@@ -133,10 +137,10 @@ module.exports = function (RED) {
                     origInputMsg.fins.replyTime = sequence.replyTime;
                     origInputMsg.fins.timeTaken = sequence.timeTaken;
 
-                    node.status({ fill: "green", shape: "dot", text: "done" });
+                    node.status({ fill: 'green', shape: 'dot', text: 'done' });
                     node.send(origInputMsg);
                 } catch (error) {
-                    nodeStatusError(error, origInputMsg, "error");
+                    nodeStatusError(error, origInputMsg, 'error');
 
                 }
             }
@@ -162,14 +166,14 @@ module.exports = function (RED) {
 
                 /* ****************  Get address (source) Parameter **************** */
                 const address = RED.util.evaluateNodeProperty(node.address, node.addressType, node, msg);
-                if (!address || typeof address != "string") {
-                    nodeStatusError(null, msg, "Source address is not valid");
+                if (!address || typeof address != 'string') {
+                    nodeStatusError(null, msg, 'Source address is not valid');
                     return;
                 }
                 /* ****************  Get address2 (destination) Parameter **************** */
                 const address2 = RED.util.evaluateNodeProperty(node.address2, node.address2Type, node, msg);
-                if (!address2 || typeof address2 != "string") {
-                    nodeStatusError(null, msg, "Destination address is not valid");
+                if (!address2 || typeof address2 != 'string') {
+                    nodeStatusError(null, msg, 'Destination address is not valid');
                     return;
                 }
 
@@ -187,10 +191,10 @@ module.exports = function (RED) {
                     opts.callback = finsReply;
                     //srcAddress, dstAddress, count, opts, tag
                     sid = node.client.transfer(address, address2, count, opts, msg);
-                    if (sid > 0) node.status({ fill: "yellow", shape: "ring", text: "transfer" });
+                    if (sid > 0) node.status({ fill: 'yellow', shape: 'ring', text: 'transfer' });
                 } catch (error) {
 
-                    nodeStatusError(error, msg, "error");
+                    nodeStatusError(error, msg, 'error');
                     const debugMsg = {
                         info: "transfer.js-->on 'input' - try this.client.transfer(address, address2, count, opts, msg)",
                         connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
@@ -206,14 +210,14 @@ module.exports = function (RED) {
                 }
 
             });
-            node.status({ fill: "green", shape: "ring", text: "ready" });
+            node.status({ fill: 'green', shape: 'ring', text: 'ready' });
 
         } else {
-            node.status({ fill: "red", shape: "dot", text: "configuration not setup" });
+            node.status({ fill: 'red', shape: 'dot', text: 'configuration not setup' });
         }
 
     }
-    RED.nodes.registerType("FINS Transfer", omronTransfer);
+    RED.nodes.registerType('FINS Transfer', omronTransfer);
     omronTransfer.prototype.close = function () {
         if (this.client) {
             this.client.disconnect();
