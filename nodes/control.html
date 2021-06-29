@@ -42,10 +42,12 @@ SOFTWARE.
     defaults: {
       name: { value: "" },
       connection: { type: "FINS Connection", required: true },
+      clockType: { value: "msg" },
+      clock: { value: "clock", required: false },
       msgPropertyType: { value: "msg" },
       msgProperty: { value: "payload", validate: RED.validators.typedInput("msgPropertyType") },
       commandType: { value: "status" },
-      command: { value: "status" },
+      command: { value: "status", required: false },
     },
     inputs: 1,
     outputs: 1,
@@ -54,7 +56,7 @@ SOFTWARE.
     align: "left",
     icon: "read.png",
     label: function () {
-      return this.name || (["status","cpu-unit-data-read", "stop", "run"].indexOf(this.commandType) >= 0 ? this.commandType : "FINS Control");
+      return this.name || (["status","cpu-unit-data-read", "stop", "run", "clock-read", "clock-write"].indexOf(this.commandType) >= 0 ? this.commandType : "FINS Control");
     },
     oneditprepare: function () {
       var node = this;
@@ -80,6 +82,7 @@ SOFTWARE.
         return $(varSel).typedInput('type', typeVal);
       }
 
+      const $clockField = setupTypedInput('clock', ["json", "msg", "flow", "global"], 'msg');
       const $msgPropertyField = setupTypedInput('msgProperty', ["msg"], 'msg');
       $("#node-input-msgProperty").typedInput({types:[{label:"msg.", value:"str"}]});
 
@@ -88,6 +91,8 @@ SOFTWARE.
         "cpu-unit-data-read": { label: "Read CPU UNIT DATA", value: 'cpu-unit-data-read', title: 'Gets the PLC unit data (PLC Mode, Version, UNITS fitted etc) and returns it to the msg property specified by "Output property"', hasValue: false},
         "stop": { label: "Set PLC Mode to STOP/PROGRAM", value: 'stop', title: 'Sets the PLC to STOP/PROGRAM mode.', hasValue: false},
         "run": { label: "Set PLC Mode to RUN/MONITOR", value: 'run', title: 'Sets the PLC to RUN/MONITOR mode.', hasValue: false},
+        "clock-read": { label: "Read the PLC clock", value: 'clock-read', title: 'Gets the PLC Clock.', hasValue: false},
+        "clock-write": { label: "Set the PLC clock", value: 'clock-write', title: 'Sets the PLC Clock to value in the clock field. See built in help for more info.', hasValue: false},
       }
 
       const commandOptions =  Object.values(controlOption);
@@ -96,6 +101,11 @@ SOFTWARE.
 
       $commandField.on("change", function() {
         let t = $commandField.typedInput("type") || "";
+        if(["clock-write","msg","flow","global","env"].indexOf(t) >= 0){
+          $("#node-red-contrib-omron-fins-control-clock-row").show(); 
+        } else {
+          $("#node-red-contrib-omron-fins-control-clock-row").hide();
+        }
         let v = (t && controlOption[t]) ? controlOption[t].title : "";
         if(!v) {
           v = "The variable should resolve to one of the following...";
@@ -106,6 +116,7 @@ SOFTWARE.
         }
         $("#omron-fins-command-tip").html(v)
       });
+      $commandField.trigger("change");
     },
     oneditresize() {
       setTimeout(() => {
@@ -136,11 +147,16 @@ SOFTWARE.
     <br>
     <label>&nbsp;</label>
     <div id="omron-fins-command-tip" class="form-tips"></div>
-  </div>   
+  </div>
+  <div id="node-red-contrib-omron-fins-control-clock-row" class="form-row omron-fins-form-row">
+    <label for="node-input-clock"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.clock"> Clock Value</span></label>
+    <input type="hidden" id="node-input-clockType">
+    <input style="width:70%" type="text" id="node-input-clock" placeholder="{year,month,day,hour,minute,second,day_of_week}">
+  </div> 
 </script>
 
 <script type="text/html" data-help-name="FINS Control">
-  <p>Read 16 bit WORD or BIT data from an OMRON PLCs using FINS protocol</p>
+  <p>A node to operate PLC control commands and status requests</p>
   <h3>Properties</h3>
   <dl class="message-properties">
     <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
@@ -154,9 +170,13 @@ SOFTWARE.
         <li>Read CPU UNIT Data: Sends an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>cpu-unit-data-read</code></li>
         <li>Set PLC Mode to STOP/PROGRAM: Sends an array of 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>stop</code></li>
         <li>Set PLC Mode to RUN/MONITOR: Sends an array of 16 bit unsigned or 1/0 bit values in the msg property specified by "Output property". To automate this option, use the string value <code>run</code></li>
+        <li>Read the PLC clock: Sends the clock parts in an object in the msg property specified by "Output property". To automate this option, use the string value <code>clock-read</code></li>
+        <li>Set the PLC clock: Set the PLC clock to the value of <code>clock</code>. The content of <code>clock</code> must be an object containing <code>{year, month, date, minute, second, day_of_week}</code> (<code>{second}</code> and <code>{day_of_week}</code> are optional) To automate this option, use the string value <code>clock-write</code></li>
       </ul>
     </dd>
-  </dl>    
+  </dl> 
+  <dt class="optional">Clock value<span class="property-type">object</span></dt>
+  <dd>The value to set in the PLC clock. This must be an object containing <code>{year, month, date, minute, second, day_of_week}</code> (<code>{second}</code> and <code>{day_of_week}</code> are optional)</dd>
   <h3>Output</h3>
   <dl class="message-properties">
     <dt>payload <span class="property-type">array</span></dt>

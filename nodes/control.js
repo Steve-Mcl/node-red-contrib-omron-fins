@@ -25,17 +25,15 @@ SOFTWARE.
 
 module.exports = function (RED) {
     const connection_pool = require('../connection_pool.js');
-    const commandTypes = ['status', 'cpu-unit-data-read', 'stop', 'run'];
+    const commandTypes = ['status', 'cpu-unit-data-read', 'stop', 'run', 'clock-read', 'clock-write'];
     function omronControl(config) {
         RED.nodes.createNode(this, config);
         const node = this;
         node.name = config.name;
         node.topic = config.topic;
         node.connection = config.connection;
-        node.address = config.address || 'topic';
-        node.addressType = config.addressType || 'msg';
-        node.count = config.count || 1;
-        node.countType = config.countType || 'num';
+        node.clock = config.clock || 'clock';
+        node.clockType = config.clockTypeType || 'msg';
         node.command = config.command || 'status';
         node.commandType = config.commandType || 'status';
         node.msgProperty = config.msgProperty || 'payload';
@@ -105,9 +103,20 @@ module.exports = function (RED) {
                         nodeStatusError(`Response is NG! endCode: ${sequence.response ? sequence.response.endCode : '????'}, endCodeDescription:${sequence.response ? sequence.response.endCodeDescription : ''}`, origInputMsg, ecd);
                         return;
                     }
+                    let payload;
+                    switch (sequence.request.command.name) {
+                    case 'status':
+                    case 'cpu-unit-data-read':
+                    case 'clock-read':
+                        payload = sequence.response.result;
+                        break;
+                    default:
+                        payload = sequence.response.sid
+                        break;
+                    }
 
                     //set the output property
-                    RED.util.setObjectProperty(origInputMsg, node.msgProperty, sequence.response, true);
+                    RED.util.setObjectProperty(origInputMsg, node.msgProperty, payload, true);
 
                     //include additional detail in msg.fins
                     origInputMsg.fins = {};
@@ -162,6 +171,8 @@ module.exports = function (RED) {
                 }
 
                 let clientFn;
+                let clockWriteData;
+                const params = [];
                 switch (command) {
                 case 'status':
                 case 'stop':
@@ -171,14 +182,29 @@ module.exports = function (RED) {
                 case 'cpu-unit-data-read':
                     clientFn = node.client.cpuUnitDataRead;
                     break;
+                case 'clock-read':
+                    clientFn = node.client.clockRead;
+                    break;
+                case 'clock-write':
+                    clockWriteData = RED.util.evaluateNodeProperty(node.clock, node.clockType, node, msg);
+                    if(!clockWriteData || typeof clockWriteData != "object") {
+                        nodeStatusError("Cannot set clock. msg.clock is missing or invalid.", msg, "error");
+                        return;
+                    }
+                    clientFn = node.client.clockWrite;
+                    params.push(clockWriteData);
+                    break;
                 }
 
                 const opts = msg.finsOptions || {};
                 let sid;
                 try {
                     opts.callback = finsReply;
-
-                    sid = clientFn(opts, msg);
+                    if(params.length) {
+                        sid = clientFn(...params, opts, msg);
+                    } else {
+                        sid = clientFn(opts, msg);
+                    }
                     if (sid > 0) {
                         node.status({ fill: 'yellow', shape: 'ring', text: 'reading' });
                     }

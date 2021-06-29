@@ -135,6 +135,20 @@ module.exports = {
                         const sid = client.cpuUnitDataRead(opts, tag);
                         return sid;
                     },
+                    clockRead(opts, tag) {
+                        if (!client.connected && options.preventAutoReconnect) {
+                            throw new Error('Not connected!');
+                        }
+                        const sid = client.clockRead(opts, tag);
+                        return sid;
+                    },
+                    clockWrite(clock, opts, tag) {
+                        if (!client.connected && options.preventAutoReconnect) {
+                            throw new Error('Not connected!');
+                        }
+                        const sid = client.clockWrite(clock, opts, tag);
+                        return sid;
+                    },
                     getAutoConnect() {
                         return (options.autoConnect == true);
                     },

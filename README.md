@@ -6,6 +6,20 @@ This is a Node-RED node module to directly interface with OMRON PLCs over FINS E
 For now it only supports READ and WRITE of WORD or BIT addresses over FINS UDP.
 Tested on CV, CP, CS, CJ, NJ and NX PLCs (the ones with FINS support)
 
+### NODES
+* read - read 1 or more WORDs or bits
+* write - write 1 or more WORDs or bits
+* fill - fill 1 or more consecutive addresses with a value
+* read-multiple - read several disparate address values
+* transfer - copy 1 or more data values from one memory area to another
+* control - this has the following functions...
+  * Get PLC Status
+  * Get PLC Unit Data
+  * Set PLC STOP/PROGRAM mode
+  * Set PLC RUN/MONITOR mode
+  * Get Clock
+  * Set Clock
+
 ## Version Update Notes
 This release (and possibly future releases up to V1.0.0) has breaking changes.
 Where possible, I make every attempt to keep things compatible, but as node-red improves (typedInput widgets for example) I too improve this node to make things easier or better. And sometimes, it becomes plain obvious a wrong decision was made that needs to be rectified before it becomes too late to change - it happens :)
@@ -92,13 +106,6 @@ SA2 | 0
    
 
 ## Data formats and conversion
-
-NOTES
-* This node returns a buffer, 16bit signed or 16bit unsigned data for WD addresses only.  
-* This node returns a buffer, boolean (true/false) or 1/0 for BIT addresses only.  
-While this may seem restrictive, it is a deliberate design decision to keep the node mean and lean. 
-
-### Read on...
 
 As I use multiple PLCs and didn't want to write boolean / 32bit / float / double functionality into each node (it's best to keep things atomic and good at what they do) so I wrote a separate second node for handling data conversions.
 

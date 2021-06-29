@@ -45,7 +45,7 @@ TODO: ~~[06,20] CYCLE TIME READ. Reads the maximum, minimum, and average cycle t
 
 
 ## Time data access 
-TODO: ~~[07,01] CLOCK READ. Reads the present year, month, date, minute, second, and day of the week.~~
+[07,01] CLOCK READ. Reads the present year, month, date, minute, second, and day of the week.
 
-TODO: ~~[07,02] CLOCK WRITE. Changes the present year, month, date, minute, second, or day of the week.~~
+[07,02] CLOCK WRITE. Changes the present year, month, date, minute, second, or day of the week.
 
