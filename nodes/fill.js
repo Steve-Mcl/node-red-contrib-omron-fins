@@ -56,8 +56,7 @@ module.exports = function (RED) {
         if (this.connectionConfig) {
 
             node.status({ fill: 'yellow', shape: 'ring', text: 'initialising' });
-            const options = Object.assign({}, node.connectionConfig.options);
-            this.client = connection_pool.get(this, this.connectionConfig.port, this.connectionConfig.host, options);
+            node.client = connection_pool.get(this, node.connectionConfig);
 
             this.client.on('error', function (error, seq) {
                 console.log('Error: ', error);
@@ -152,7 +151,7 @@ module.exports = function (RED) {
                 node.status({});//clear status
 
                 if (msg.disconnect === true || msg.topic === 'disconnect') {
-                    node.client.closeConnection();
+                    node.client.disconnect();
                     return;
                 } else if (msg.connect === true || msg.topic === 'connect') {
                     node.client.connect();
@@ -207,7 +206,11 @@ module.exports = function (RED) {
                 }
 
             });
-            node.status({ fill: 'green', shape: 'ring', text: 'ready' });
+            if(node.client && node.client.connected) {
+                node.status({ fill: 'green', shape: 'ring', text: 'connected' });
+            } else {
+                node.status({ fill: 'grey', shape: 'ring', text: 'initialised' });
+            }
 
         } else {
             node.status({ fill: 'red', shape: 'dot', text: 'configuration not setup' });
@@ -215,10 +218,10 @@ module.exports = function (RED) {
 
     }
     RED.nodes.registerType('FINS Fill', omronFill);
-    omronFill.prototype.close = function () {
-        if (this.client) {
-            this.client.disconnect();
-        }
-    };
+    // omronFill.prototype.close = function () {
+    //     if (this.client) {
+    //         this.client.disconnect();
+    //     }
+    // };
 };
 

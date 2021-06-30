@@ -22,157 +22,211 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. 
 -->
 
+<style>
+    .form-row.node-red-contrib-fins-flags-row > .node-red-contrib-fins-flags {
+        display: inline-block;
+        width: 70%;
+    }
+
+    .form-row.node-red-contrib-fins-flags-row > label {
+        vertical-align: top;
+    }
+    .form-row.node-red-contrib-fins-flags-row > .node-red-contrib-fins-flags > .node-red-contrib-fins-flag > label {
+        display: block;
+        width: 100%;
+    }
+    .form-row.node-red-contrib-fins-flags-row > .node-red-contrib-fins-flags > .node-red-contrib-fins-flag > label > input {
+        position: relative;
+        vertical-align: bottom;
+        top: -2px;
+        width: 15px;
+        height: 15px;
+    }
+</style>
+
 <script type="text/html" data-template-name="FINS Connection">
-  <div class="form-row">
-    <label for="node-config-input-name"><i class="icon-tag"></i> <span data-i18n="omron-read.label.name">Name</span></label>
+<div class="form-row">
+    <label for="node-config-input-name"><i class="icon-tag"></i> <span
+            data-i18n="omron-connection.label.name">Name</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-name" placeholder="Name">
-  </div>  
-  <div class="form-row">
-    <label for="node-config-input-protocol"><i class="fa fa-cogs"></i> <span data-i18n="omron-read.label.protocol">Protocol</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-protocol"><i class="fa fa-cogs"></i> <span
+            data-i18n="omron-connection.label.protocol">Protocol</span></label>
     <input type="text" hidden="true" id="node-config-input-protocolType">
     <input style="width: 70%;" type="text" id="node-config-input-protocol">
-  </div>
-  <div class="form-row">
-      <label for="node-config-input-host"><i class="icon-globe"></i> <span data-i18n="omron-read.label.host">Host</span></label>
-      <input style="width: 70%;" type="text" id="node-config-input-host" placeholder="192.168.x.x">
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-port"><i class="fa fa-random"></i> <span data-i18n="omron-read.label.port">Port</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-host"><i class="icon-globe"></i> <span
+            data-i18n="omron-connection.label.host">Host</span></label>
+    <input style="width: 70%;" type="text" id="node-config-input-host" placeholder="192.168.x.x">
+</div>
+<div class="form-row">
+    <label for="node-config-input-port"><i class="fa fa-random"></i> <span
+            data-i18n="omron-connection.label.port">Port</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-port" placeholder="9600">
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-MODE"><i class="fa fa-dot-circle-o"></i> <span data-i18n="omron-read.label.MODE">MODE</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-MODE"><i class="fa fa-dot-circle-o"></i> <span
+            data-i18n="omron-connection.label.MODE">MODE</span></label>
     <select style="width: 70%;" id="node-config-input-MODE">
-      <option value="CSCJ">CP/CS/CJ</option>
-      <option value="NJNX">NJ/NX</option>
-      <option value="CV">CV</option>
+        <option value="CSCJ">CP/CS/CJ</option>
+        <option value="NJNX">NJ/NX</option>
+        <option value="CV">CV</option>
     </select>
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-ICF" title="Information Control Field: Default = 0x80"><i class="fa fa-cog"></i> <span data-i18n="omron-read.label.ICF">ICF</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-ICF" title="Information Control Field: Default = 0x80"><i class="fa fa-cog"></i> <span
+            data-i18n="omron-connection.label.ICF">ICF</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-ICF" placeholder="e.g. 0x80 (0x80 is normal default)">
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-DNA" title="Destination Network Address: Enter 0 for Local, 0x1~0x7f for remote"><i class="fa fa-cog"></i> <span data-i18n="omron-read.label.DNA">DNA</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-DNA" title="Destination Network Address: Enter 0 for Local, 0x1~0x7f for remote"><i
+            class="fa fa-cog"></i> <span data-i18n="omron-connection.label.DNA">DNA</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-DNA" placeholder="e.g. 0x0" />
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-DA1" title="Destination Node: Enter 0 for internal"><i class="fa fa-cog"></i> <span data-i18n="omron-read.label.DA1">DA1</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-DA1" title="Destination Node: Enter 0 for internal"><i class="fa fa-cog"></i> <span
+            data-i18n="omron-connection.label.DA1">DA1</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-DA1" placeholder="e.g. 0x0" />
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-DA2" title="Destination Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board"><i class="fa fa-cog"></i> <span data-i18n="omron-read.label.DA2">DA2</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-DA2"
+        title="Destination Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board"><i
+            class="fa fa-cog"></i> <span data-i18n="omron-connection.label.DA2">DA2</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-DA2" placeholder="e.g. 0x0" />
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-SNA" title="Source Network Address: Enter 0 for Local, 0x1~0x7f for remote"><i class="fa fa-cog"></i> <span data-i18n="omron-read.label.SNA">SNA</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-SNA" title="Source Network Address: Enter 0 for Local, 0x1~0x7f for remote"><i
+            class="fa fa-cog"></i> <span data-i18n="omron-connection.label.SNA">SNA</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-SNA" placeholder="e.g. 0x0" />
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-SA1" title="Source Node: Enter 0 for internal"><i class="fa fa-cog"></i> <span data-i18n="omron-read.label.SA1">SA1</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-SA1" title="Source Node: Enter 0 for internal"><i class="fa fa-cog"></i> <span
+            data-i18n="omron-connection.label.SA1">SA1</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-SA1" placeholder="e.g. 0x0" />
-  </div>
-  <div class="form-row">
-    <label for="node-config-input-SA2" title="Source Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board"><i class="fa fa-cog"></i> <span data-i18n="omron-read.label.SA2">SA2</span></label>
+</div>
+<div class="form-row">
+    <label for="node-config-input-SA2"
+        title="Source Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board"><i
+            class="fa fa-cog"></i> <span data-i18n="omron-connection.label.SA2">SA2</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-SA2" placeholder="e.g. 0x0" />
-  </div>
-  <div class="form-row">
-    <div style="display: inline-block;width: calc(100% - 20px) !important;max-width: unset !important;" class="form-tips">
-      Read the built in help on the side-bar for a description of each control parameter
+</div>
+<div class="form-row node-red-contrib-fins-flags-row">
+    <label for="node-input-nl"><i class="fa fa-flag"></i> <span
+            data-i18n="node-red:mqtt.label.flags">Flags</span></label>
+    <div class="node-red-contrib-fins-flags">
+        <div class="node-red-contrib-fins-flag">
+            <label for="node-config-input-autoConnect">
+                <input type="checkbox" id="node-config-input-autoConnect" autocomplete="off">
+                <span data-i18n="omron-connection.label.SA1">Auto connect PLC</span>
+            </label>
+        </div>
     </div>
-  </div>
+</div>
+<div class="form-row">
+    <div style="display: inline-block;width: calc(100% - 20px) !important;max-width: unset !important;"
+        class="form-tips">
+        Read the built in help on the side-bar for a description of each control parameter
+    </div>
+</div>
 </script>
 
 <script type="text/html" data-help-name="FINS Connection">
-  <p>FINS Connection</p>
-    <h3>Notes</h3>
-      <dt>Environment Variables</dt>
-      <dd>Text fields (Host, Port, ICF, DNA, DA1, DA2, SNA, SA1, SA2) can be environment variables e.g. ${PLC_PORT}</dd> 
+<p>FINS Connection</p>
+<h3>Notes</h3>
+<dt>Environment Variables</dt>
+<dd>Text fields (Host, Port, ICF, DNA, DA1, DA2, SNA, SA1, SA2) can be environment variables e.g. ${PLC_PORT}</dd>
 
-    <h3>Details</h3>
+<h3>Details</h3>
 
-      <dt>ICF</dt>
-      <dd>Information Control Field: Default = 0x80</dd> 
+<dt>ICF</dt>
+<dd>Information Control Field: Default = 0x80</dd>
 
-      <dt>DNA</dt>
-      <dd>
-        Destination Network Address: Enter 0 for "this network", 0x1~0x7f for remote
-      </dd>
-      
-      <dt>DA1</dt>
-      <dd>
-        Destination Node: Enter 0 for "this node". Often this is set to the value of the last octet of the PLCs IP Address. 
-        Ultimately, if none zero, it should match the node number set on the PLC.
-      </dd>
-      
-      <dt>DA2</dt>
-      <dd>
-        Destination Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board
-      </dd>
-      
-      <dt>SNA</dt>
-      <dd>
-        Source Network Address: Enter 0 for "this network", 0x1~0x7f for remote. Check the PLC Network Routing table.
-      </dd>
-      
-      <dt>SA1</dt>
-      <dd>
-        Source Node: For direct communication, try entering 0 or setting it to the value of last octet of node-red IP Address.
-        Depending on the network subnet mask and the FINS conversion method setting, it may be necessary to enter the node-red IP and Node Address number in the PLC FINS/UDP IP Address Table
-      </dd>
-      
-      <dt>SA2</dt>
-      <dd>
-        Source Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board
-      </dd>
-      
-    </dl>
-  </script>
+<dt>DNA</dt>
+<dd>
+    Destination Network Address: Enter 0 for "this network", 0x1~0x7f for remote
+</dd>
+
+<dt>DA1</dt>
+<dd>
+    Destination Node: Enter 0 for "this node". Often this is set to the value of the last octet of the PLCs IP Address.
+    Ultimately, if none zero, it should match the node number set on the PLC.
+</dd>
+
+<dt>DA2</dt>
+<dd>
+    Destination Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board
+</dd>
+
+<dt>SNA</dt>
+<dd>
+    Source Network Address: Enter 0 for "this network", 0x1~0x7f for remote. Check the PLC Network Routing table.
+</dd>
+
+<dt>SA1</dt>
+<dd>
+    Source Node: For direct communication, try entering 0 or setting it to the value of last octet of node-red IP
+    Address.
+    Depending on the network subnet mask and the FINS conversion method setting, it may be necessary to enter the
+    node-red IP and Node Address number in the PLC FINS/UDP IP Address Table
+</dd>
+
+<dt>SA2</dt>
+<dd>
+    Source Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board
+</dd>
+
+</script>
 
 <script type="text/javascript">
-  RED.nodes.registerType('FINS Connection', {
-    category: 'config',
-    color: '#0090d4',
-    icon: "connection.png",
-    defaults: {
-      name: { value: "" },
-      host: { value: "192.168.0.1", required: true },
-      port: { value: 9600, required: true/*, validate: RED.validators.number()*/ },
-      MODE: { value: "CSCJ"},
-      protocol: { value: ""},
-      protocolType: { value: "udp"},
-      ICF: { value: 0x80},//, validate: RED.validators.number() },
-      DNA: { value: 0x0},//, validate: RED.validators.number() },
-      DA1: { value: 0x0},//, validate: RED.validators.number() },
-      DA2: { value: 0x0},//, validate: RED.validators.number() },
-      SNA: { value: 0x0},//, validate: RED.validators.number() },
-      SA1: { value: 0x0},//, validate: RED.validators.number() },
-      SA2: { value: 0x0},//, validate: RED.validators.number() },
-    },
-    label: function () {
-      if(this.name) {
-        return this.name;
-      }
-      let l = this.host + ":" + this.port;
-      if(this.protocolType == "env") {
-        return l;
-      } else if (this.protocolType == "tcp") {
-        l += " (tcp)";
-      } else {
-        l += " (udp)";
-      }
-      return l;
-    },
-    oneditprepare() {
-      $("#node-config-input-protocol").typedInput({
-        default:'udp',
-        types: [
-          { label: "udp", value: 'udp', hasValue: false},
-          { label: "tcp", value: 'tcp', hasValue: false},
-           "env",
-        ],
-        typeField: $("#node-config-input-protocolType")
-      })
-    }
-  });
+    RED.nodes.registerType('FINS Connection', {
+        category: 'config',
+        color: '#0090d4',
+        icon: "connection.png",
+        defaults: {
+            name: { value: "" },
+            host: { value: "192.168.0.1", required: true },
+            port: { value: 9600, required: true/*, validate: RED.validators.number()*/ },
+            MODE: { value: "CSCJ" },
+            protocol: { value: "" },
+            protocolType: { value: "udp" },
+            ICF: { value: 0x80 },//, validate: RED.validators.number() },
+            DNA: { value: 0x0 },//, validate: RED.validators.number() },
+            DA1: { value: 0x0 },//, validate: RED.validators.number() },
+            DA2: { value: 0x0 },//, validate: RED.validators.number() },
+            SNA: { value: 0x0 },//, validate: RED.validators.number() },
+            SA1: { value: 0x0 },//, validate: RED.validators.number() },
+            SA2: { value: 0x0 },//, validate: RED.validators.number() },
+            autoConnect: { value: true }
+        },
+        label: function () {
+            if (this.name) {
+                return this.name;
+            }
+            let l = this.host + ":" + this.port;
+            if (this.protocolType == "env") {
+                return l;
+            } else if (this.protocolType == "tcp") {
+                l += " (tcp)";
+            } else {
+                l += " (udp)";
+            }
+            return l;
+        },
+        oneditprepare() {
+            const node = this;
+            node.autoConnect = node.autoConnect == null ? true: node.autoConnect;
+            $("#node-config-input-autoConnect").prop('checked', node.autoConnect);
+            $("#node-config-input-protocol").typedInput({
+                default: 'udp',
+                types: [
+                    { label: "udp", value: 'udp', hasValue: false },
+                    { label: "tcp", value: 'tcp', hasValue: false },
+                    "env",
+                ],
+                typeField: $("#node-config-input-protocolType")
+            })
+        }
+    });
 </script>

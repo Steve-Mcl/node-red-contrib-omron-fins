@@ -25,7 +25,7 @@ SOFTWARE.
 
 module.exports = function (RED) {
     const connection_pool = require('../connection_pool.js');
-    const commandTypes = ['status', 'cpu-unit-data-read', 'stop', 'run', 'clock-read', 'clock-write'];
+    const commandTypes = ['connect', 'disconnect', 'status', 'cpu-unit-data-read', 'stop', 'run', 'clock-read', 'clock-write'];
     function omronControl(config) {
         RED.nodes.createNode(this, config);
         const node = this;
@@ -33,7 +33,9 @@ module.exports = function (RED) {
         node.topic = config.topic;
         node.connection = config.connection;
         node.clock = config.clock || 'clock';
-        node.clockType = config.clockTypeType || 'msg';
+        node.clockType = config.clockType || 'msg';
+        node.connectOptions = config.connectOptions || 'connectOptions';
+        node.connectOptionsType = config.connectOptionsType || 'msg';
         node.command = config.command || 'status';
         node.commandType = config.commandType || 'status';
         node.msgProperty = config.msgProperty || 'payload';
@@ -41,9 +43,8 @@ module.exports = function (RED) {
         node.connectionConfig = RED.nodes.getNode(node.connection);
 
         if (this.connectionConfig) {
-            const options = Object.assign({}, node.connectionConfig.options);
-            node.client = connection_pool.get(this, this.connectionConfig.port, this.connectionConfig.host, options);
             node.status({ fill: 'yellow', shape: 'ring', text: 'initialising' });
+            node.client = connection_pool.get(this, node.connectionConfig);
 
             this.client.on('error', function (error, seq) {
                 node.status({ fill: 'red', shape: 'ring', text: 'error' });
@@ -105,6 +106,9 @@ module.exports = function (RED) {
                     }
                     let payload;
                     switch (sequence.request.command.name) {
+                    case 'connect':
+                    case 'disconnect':
+                        break;
                     case 'status':
                     case 'cpu-unit-data-read':
                     case 'clock-read':
@@ -126,6 +130,7 @@ module.exports = function (RED) {
                         options: sequence.request.options,
                         sid: sequence.request.sid,
                     };
+                    origInputMsg.fins.connectionInfo = node.client.connectionInfo;
                     origInputMsg.fins.response = sequence.response;
                     origInputMsg.fins.stats = sequence.stats;
                     origInputMsg.fins.createTime = sequence.createTime;
@@ -151,7 +156,7 @@ module.exports = function (RED) {
                 node.status({});//clear status
 
                 if (msg.disconnect === true || msg.topic === 'disconnect') {
-                    node.client.closeConnection();
+                    node.client.disconnect();
                     return;
                 } else if (msg.connect === true || msg.topic === 'connect') {
                     node.client.connect();
@@ -172,8 +177,24 @@ module.exports = function (RED) {
 
                 let clientFn;
                 let clockWriteData;
+                let connectOptions;
                 const params = [];
                 switch (command) {
+                case 'connect':
+                    connectOptions = RED.util.evaluateNodeProperty(node.connectOptions, node.connectOptionsType, node, msg);
+                    if(connectOptions) {
+                        if( typeof connectOptions != "object") {
+                            nodeStatusError("Connect Options must be an object", msg, "error");
+                            return;
+                        } else {
+                            params.push(connectOptions.host);
+                            params.push(connectOptions.port);
+                            params.push(connectOptions);
+                        }
+                    }
+                    clientFn = node.client.connect;
+                    break;
+                case 'disconnect':
                 case 'status':
                 case 'stop':
                 case 'run':
@@ -222,17 +243,21 @@ module.exports = function (RED) {
                 }
 
             });
-            node.status({ fill: 'green', shape: 'ring', text: 'ready' });
+            if(node.client && node.client.connected) {
+                node.status({ fill: 'green', shape: 'ring', text: 'connected' });
+            } else {
+                node.status({ fill: 'grey', shape: 'ring', text: 'initialised' });
+            }
 
         } else {
             node.status({ fill: 'red', shape: 'dot', text: 'configuration not setup' });
         }
     }
     RED.nodes.registerType('FINS Control', omronControl);
-    omronControl.prototype.close = function () {
-        if (this.client) {
-            this.client.disconnect();
-        }
-    };
+    // omronControl.prototype.close = function () {
+    //     if (this.client) {
+    //         this.client.disconnect();
+    //     }
+    // };
 };
 

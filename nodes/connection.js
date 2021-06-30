@@ -23,19 +23,7 @@ SOFTWARE.
 */
 
 var constants = require('omron-fins').FinsConstants;
-
-function isInt(x,def){
-  var v;
-  try{
-    v = parseInt(x);
-    if(isNaN(v))
-      return def;
-  } catch(e){
-    return def;
-  }
-  return v;
-}
-
+const {isInt } = require('./data_utilities');
 /*!
  * Get value of environment variable.
  * @param {RED} _RED - accessing RED object
@@ -43,8 +31,8 @@ function isInt(x,def){
  * @return {String} value of env var / setting
  */
 function getSetting(_RED, name) {
-  var result = _RED.util.getObjectProperty(_RED.settings, name);
-  return result || process.env[name];
+    var result = _RED.util.getObjectProperty(_RED.settings, name);
+    return result || process.env[name];
 }
 
 /**
@@ -58,49 +46,59 @@ function getSetting(_RED, name) {
  * @return {String} The parsed string
  */
 function resolveSetting(value, RED) {
-  try {
-    if(!value) return value;
-    if(typeof value != "string") return value;
-    var result;
-    if (/^\${[^}]+}$/.test(value)) {
-        // ${ENV_VAR}
-        var name = value.substring(2,value.length-1);
-        result = getSetting(RED, name);
-    } else {
-        // FOO${ENV_VAR}BAR
-        result = value.replace(/\${([^}]+)}/g, function(match, name) {
-          return getSetting(RED, name);
-        });
+    try {
+        if (!value) return value;
+        if (typeof value != "string") return value;
+        var result;
+        if (/^\${[^}]+}$/.test(value)) {
+            // ${ENV_VAR}
+            var name = value.substring(2, value.length - 1);
+            result = getSetting(RED, name);
+        } else {
+            // FOO${ENV_VAR}BAR
+            result = value.replace(/\${([^}]+)}/g, function (match, name) {
+                return getSetting(RED, name);
+            });
+        }
+        return (result == null) ? value : result;
+    } catch (error) {
+        return value;
     }
-    return (result == null)?value:result;
-  } catch (error) {
-    return value;
-  }
-  
+
 }
 
 module.exports = function (RED) {
-  function omronConnection(config) {
-    RED.nodes.createNode(this, config);
-    this.name = config.name;
-    this.host = resolveSetting(config.host, RED);
-    this.port = resolveSetting(config.port, RED);
-    this.options = {};
-    if(config.protocolType == "env") {
-      this.options.protocol = resolveSetting(config.protocol, RED);
-    } else {
-      this.options.protocol = config.protocolType || "udp";
-    }
-    this.options.MODE = config.MODE ? config.MODE : "CSCJ";
-    this.options.ICF = isInt(resolveSetting(config.ICF, RED), constants.DefaultFinsHeader.ICF);
-    this.options.DNA = isInt(resolveSetting(config.DNA, RED), constants.DefaultFinsHeader.DNA);
-    this.options.DA1 = isInt(resolveSetting(config.DA1, RED), constants.DefaultFinsHeader.DA1);
-    this.options.DA2 = isInt(resolveSetting(config.DA2, RED), constants.DefaultFinsHeader.DA2);
-    this.options.SNA = isInt(resolveSetting(config.SNA, RED), constants.DefaultFinsHeader.SNA);
-    this.options.SA1 = isInt(resolveSetting(config.SA1, RED), constants.DefaultFinsHeader.SA1);
-    this.options.SA2 = isInt(resolveSetting(config.SA2, RED), constants.DefaultFinsHeader.SA2);
+    const connection_pool = require('../connection_pool.js');
+    function omronConnection(config) {
+        RED.nodes.createNode(this, config);
+        this.name = config.name;
+        this.host = resolveSetting(config.host, RED);
+        this.port = resolveSetting(config.port, RED);
+        this.options = {};
+        if (config.protocolType == "env") {
+            this.options.protocol = resolveSetting(config.protocol, RED);
+        } else {
+            this.options.protocol = config.protocolType || "udp";
+        }
+        this.options.MODE = config.MODE ? config.MODE : "CSCJ";
+        this.options.ICF = isInt(resolveSetting(config.ICF, RED), constants.DefaultFinsHeader.ICF);
+        this.options.DNA = isInt(resolveSetting(config.DNA, RED), constants.DefaultFinsHeader.DNA);
+        this.options.DA1 = isInt(resolveSetting(config.DA1, RED), constants.DefaultFinsHeader.DA1);
+        this.options.DA2 = isInt(resolveSetting(config.DA2, RED), constants.DefaultFinsHeader.DA2);
+        this.options.SNA = isInt(resolveSetting(config.SNA, RED), constants.DefaultFinsHeader.SNA);
+        this.options.SA1 = isInt(resolveSetting(config.SA1, RED), constants.DefaultFinsHeader.SA1);
+        this.options.SA2 = isInt(resolveSetting(config.SA2, RED), constants.DefaultFinsHeader.SA2);
+        this.autoConnect = config.autoConnect == null ? true : config.autoConnect;
 
-  }
-  RED.nodes.registerType("FINS Connection", omronConnection);
+        // eslint-disable-next-line no-unused-vars
+        this.on('close', function (done) {
+            try {
+                connection_pool.close(this, this);
+                done && done();
+            // eslint-disable-next-line no-empty
+            } catch (error) { }
+        });
+    }
+    RED.nodes.registerType("FINS Connection", omronConnection);
 };
 

@@ -35,28 +35,30 @@ SOFTWARE.
   }
 </style>
 
-<script type="text/javascript">
+<script type='text/javascript'>
   RED.nodes.registerType('FINS Control', {
     category: 'OMRON',
     color: '#0090d4',
     defaults: {
-      name: { value: "" },
-      connection: { type: "FINS Connection", required: true },
-      clockType: { value: "msg" },
-      clock: { value: "clock", required: false },
-      msgPropertyType: { value: "msg" },
-      msgProperty: { value: "payload", validate: RED.validators.typedInput("msgPropertyType") },
-      commandType: { value: "status" },
-      command: { value: "status", required: false },
+      name: { value: '' },
+      connection: { type: 'FINS Connection', required: true },
+      clockType: { value: 'msg' },
+      clock: { value: 'clock', required: false },
+      connectOptionsType: { value: 'none' },
+      connectOptions: { required: false },
+      msgPropertyType: { value: 'msg' },
+      msgProperty: { value: 'payload', validate: RED.validators.typedInput('msgPropertyType') },
+      commandType: { value: 'status' },
+      command: { value: 'status', required: false },
     },
     inputs: 1,
     outputs: 1,
-    inputLabels: "Trigger request",
-    outputLabels: "Returned values",
-    align: "left",
-    icon: "read.png",
+    inputLabels: 'Trigger request',
+    outputLabels: 'Returned values',
+    align: 'left',
+    icon: 'read.png',
     label: function () {
-      return this.name || (["status","cpu-unit-data-read", "stop", "run", "clock-read", "clock-write"].indexOf(this.commandType) >= 0 ? this.commandType : "FINS Control");
+      return this.name || (['connect', 'disconnect', 'status','cpu-unit-data-read', 'stop', 'run', 'clock-read', 'clock-write'].indexOf(this.commandType) >= 0 ? this.commandType : 'FINS Control');
     },
     oneditprepare: function () {
       var node = this;
@@ -69,9 +71,9 @@ SOFTWARE.
         if (typeVal == null || typeVal === 'none') {
           typeVal = def;
         } else if (typeVal === 'string') {
-          typeVal = "str";
+          typeVal = 'str';
         } else if (typeVal === 'number') {
-          typeVal = "num";
+          typeVal = 'num';
         }
         $(typeSel).val(typeVal);
         $(varSel).typedInput({
@@ -82,17 +84,19 @@ SOFTWARE.
         return $(varSel).typedInput('type', typeVal);
       }
 
-      const $clockField = setupTypedInput('clock', ["json", "msg", "flow", "global"], 'msg');
-      const $msgPropertyField = setupTypedInput('msgProperty', ["msg"], 'msg');
-      $("#node-input-msgProperty").typedInput({types:[{label:"msg.", value:"str"}]});
+      const $connectOptionsField = setupTypedInput('connectOptions', [{value:'none', label:'none', hasValue: false }, 'msg', 'flow', 'global'], 'none');
+      const $clockField = setupTypedInput('clock', ['msg', 'json', 'flow', 'global'], 'json');
+      const $msgPropertyField = setupTypedInput('msgProperty', ['msg'], 'msg');
 
       const controlOption = {
-        "status": { label: "Read CPU UNIT Status", value: 'status', title: 'Gets the PLC status and returns it to the msg property specified by "Output property"', hasValue: false},
-        "cpu-unit-data-read": { label: "Read CPU UNIT DATA", value: 'cpu-unit-data-read', title: 'Gets the PLC unit data (PLC Mode, Version, UNITS fitted etc) and returns it to the msg property specified by "Output property"', hasValue: false},
-        "stop": { label: "Set PLC Mode to STOP/PROGRAM", value: 'stop', title: 'Sets the PLC to STOP/PROGRAM mode.', hasValue: false},
-        "run": { label: "Set PLC Mode to RUN/MONITOR", value: 'run', title: 'Sets the PLC to RUN/MONITOR mode.', hasValue: false},
-        "clock-read": { label: "Read the PLC clock", value: 'clock-read', title: 'Gets the PLC Clock.', hasValue: false},
-        "clock-write": { label: "Set the PLC clock", value: 'clock-write', title: 'Sets the PLC Clock to value in the clock field. See built in help for more info.', hasValue: false},
+        "connect": { label: 'Connect to PLC', value: 'connect', title: 'Connect/reconnect to PLC. If `options` are provided, they will be merged with existing connection options. See built in help for more info.', hasValue: false},
+        "disconnect": { label: 'Disconnect PLC', value: 'disconnect', title: 'Disconnect from PLC', hasValue: false},
+        "status": { label: 'Read CPU UNIT Status', value: 'status', title: 'Gets the PLC status and returns it to the msg property specified by "Output property"', hasValue: false},
+        "cpu-unit-data-read": { label: 'Read CPU UNIT DATA', value: 'cpu-unit-data-read', title: 'Gets the PLC unit data (PLC Mode, Version, UNITS fitted etc) and returns it to the msg property specified by "Output property"', hasValue: false},
+        "stop": { label: 'Set PLC Mode to STOP/PROGRAM', value: 'stop', title: 'Sets the PLC to STOP/PROGRAM mode.', hasValue: false},
+        "run": { label: 'Set PLC Mode to RUN/MONITOR', value: 'run', title: 'Sets the PLC to RUN/MONITOR mode.', hasValue: false},
+        "clock-read": { label: 'Read the PLC clock', value: 'clock-read', title: 'Gets the PLC Clock.', hasValue: false},
+        "clock-write": { label: 'Set the PLC clock', value: 'clock-write', title: 'Sets the PLC Clock to value in the clock field. See built in help for more info.', hasValue: false},
       }
 
       const commandOptions =  Object.values(controlOption);
@@ -100,28 +104,33 @@ SOFTWARE.
       const $commandField = setupTypedInput('command', commandOptions, 'status');
 
       $commandField.on("change", function() {
-        let t = $commandField.typedInput("type") || "";
-        if(["clock-write","msg","flow","global","env"].indexOf(t) >= 0){
-          $("#node-red-contrib-omron-fins-control-clock-row").show(); 
+        let t = $commandField.typedInput('type') || '';
+        if(['clock-write','msg','flow','global','env'].indexOf(t) >= 0){
+          $('#node-red-contrib-omron-fins-control-clock-row').show(); 
         } else {
-          $("#node-red-contrib-omron-fins-control-clock-row").hide();
+          $('#node-red-contrib-omron-fins-control-clock-row').hide();
         }
-        let v = (t && controlOption[t]) ? controlOption[t].title : "";
+        if(['connect','msg','flow','global','env'].indexOf(t) >= 0){
+          $('#node-red-contrib-omron-fins-control-connectOptions-row').show(); 
+        } else {
+          $('#node-red-contrib-omron-fins-control-connectOptions-row').hide();
+        }
+        let v = (t && controlOption[t]) ? controlOption[t].title : '';
         if(!v) {
-          v = "The variable should resolve to one of the following...";
+          v = 'The variable should resolve to one of the following...';
           let opts = Object.values(controlOption);
           opts.forEach(function(e) {
             v += '<br>• <span style="font-family: monospace; color: var(--red-ui-text-color-code);">' + e.value + "</span> - " + e.label;
           })
         }
-        $("#omron-fins-command-tip").html(v)
+        $('#omron-fins-command-tip').html(v)
       });
-      $commandField.trigger("change");
+      $commandField.trigger('change');
     },
     oneditresize() {
       setTimeout(() => {
-        console.log("updating tip max-width")
-        $("#omron-fins-command-tip").css("max-width", "unset");
+        console.log('updating tip max-width')
+        $('#omron-fins-command-tip').css('max-width', 'unset');
       }, 250);
     }
   });
@@ -149,9 +158,14 @@ SOFTWARE.
     <div id="omron-fins-command-tip" class="form-tips"></div>
   </div>
   <div id="node-red-contrib-omron-fins-control-clock-row" class="form-row omron-fins-form-row">
-    <label for="node-input-clock"><i class="fa fa-sign-out"></i> <span data-i18n="read.label.clock"> Clock Value</span></label>
+    <label for="node-input-clock"><i class="fa fa-clock-o"></i> <span data-i18n="read.label.clock"> Clock Value</span></label>
     <input type="hidden" id="node-input-clockType">
     <input style="width:70%" type="text" id="node-input-clock" placeholder="{year,month,day,hour,minute,second,day_of_week}">
+  </div> 
+  <div id="node-red-contrib-omron-fins-control-connectOptions-row" class="form-row omron-fins-form-row">
+    <label for="node-input-connectOptions"><i class="fa fa-code"></i> <span data-i18n="read.label.connectOptions"> Connect Opts</span></label>
+    <input type="hidden" id="node-input-connectOptionsType">
+    <input style="width:70%" type="text" id="node-input-connectOptions" placeholder="options">
   </div> 
 </script>
 
@@ -166,6 +180,8 @@ SOFTWARE.
     <dt class="required">Command<span class="property-type">string</span></dt>
     <dd>Specify the type of command.
       <ul>
+        <li>Connect to PLC: Open the connection to the PLC. If <code>options</code> are provided, they will be merged with existing node options. Supported options are <code>{host:string, port:number, timeoutMS: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code>. To automate this option, use the string value <code>disconnect</code></li>
+        <li>Disconnect PLC: Close the connection to the PLC. To automate this option, use the string value <code>status</code></li>
         <li>Read CPU UNIT Status: Sends a buffer. To automate this option, use the string value <code>status</code></li>
         <li>Read CPU UNIT Data: Sends an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>cpu-unit-data-read</code></li>
         <li>Set PLC Mode to STOP/PROGRAM: Sends an array of 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>stop</code></li>
@@ -175,6 +191,8 @@ SOFTWARE.
       </ul>
     </dd>
   </dl> 
+  <dt class="optional">Connect Options<span class="property-type">object</span></dt>
+  <dd>If specified, this must be an object containing one or more of the following options <code>{host:string, port:number, timeoutMS: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code></dd>
   <dt class="optional">Clock value<span class="property-type">object</span></dt>
   <dd>The value to set in the PLC clock. This must be an object containing <code>{year, month, date, minute, second, day_of_week}</code> (<code>{second}</code> and <code>{day_of_week}</code> are optional)</dd>
   <h3>Output</h3>

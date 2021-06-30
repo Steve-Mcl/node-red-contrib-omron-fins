@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-const clients = {};
 
 function convertPayloadToDataArray(payload) {
     let array = [];
@@ -46,23 +45,31 @@ function convertPayloadToDataArray(payload) {
     return array;
 }
 
+function describe(host, port, options) {
+    options = options || {};
+    return `{host:'${host || ''}', port:'${port || ''}', protocol:'${options.protocol || 'udp'}', MODE:'${options.MODE}', ICF:'${options.ICF}', DNA:'${options.DNA}', DA1:'${options.DA1}', DA2:'${options.DA2}', SNA:'${options.SNA}', SA1:'${options.SA1}', SA2:'${options.SA2}'}`;
+}
+
+const clients = {};
+const fins = require('./omron-fins');
+
 module.exports = {
 
-    get(node, port, host, opts) {
-        const fins = require('./omron-fins');
-        const id = `FinsClient:{host:'${host || ''}', port:'${port || ''}', protocol:'${opts.protocol || 'udp'}', MODE:'${opts.MODE}', ICF:'${opts.ICF}', DNA:'${opts.DNA}', DA1:'${opts.DA1}', DA2:'${opts.DA2}', SNA:'${opts.SNA}', SA1:'${opts.SA1}', SA2:'${opts.SA2}'}`;
+    get(node, connectionConfig) {
+        const id = connectionConfig.id;
+        let options = connectionConfig.options || {};
+        let port = parseInt(connectionConfig.port || options.port);
+        let host = connectionConfig.host || options.host;
+        let connect = connectionConfig.autoConnect == null ? true : connectionConfig.autoConnect;
 
         if (!clients[id]) {
             clients[id] = (function () {
-                const options = opts || {};
-                const h = host || options.host;
-                const p = port || options.port;
 
-                node.log(`[FINS] adding new connection to pool ~ ${id}`);
-                let client = fins.FinsClient(parseInt(p), h, options);
+                node.log(`Create new FinsClient. id:${id}, config: ${describe(host, port, options)}`);
                 let connecting = false;
+                let client = fins.FinsClient(port, host, options, connect);
 
-                options.autoConnect = options.autoConnect == undefined ? true : options.autoConnect;
+                options.autoConnect = options.autoConnect == null ? true : options.autoConnect;
                 options.preventAutoReconnect = false;
 
                 const finsClientConnection = {
@@ -158,14 +165,27 @@ module.exports = {
                     on(a, b) {
                         client.on(a, b);
                     },
-                    connect() {
+                    connect(host, port, opts) {
                         options.preventAutoReconnect = false;
                         if (client && !client.connected && !connecting) {
+                            try {
+                                node.log(`Connecting id:${id}, config: ${describe(this.connectionInfo.host, this.connectionInfo.port, this.connectionInfo.options)}`);
+                            // eslint-disable-next-line no-empty
+                            } catch (error) { }
                             connecting = true;
-                            client.reconnect();
+                            try {
+                                if(arguments.length == 0) {
+                                    client.reconnect();
+                                } else {
+                                    client.connect(host, port, opts);
+                                }
+                            // eslint-disable-next-line no-empty
+                            } catch (error) {
+                                node.error(error)
+                            }
                         }
                     },
-                    closeConnection() {
+                    disconnect() {
                         options.preventAutoReconnect = true;
                         if (client) {
                             client.close();
@@ -180,33 +200,53 @@ module.exports = {
                         return client.FinsAddressToString(decodedAddress, offsetWD, offsetBit);
                     },
 
-                    disconnect() {
-                        this._instances -= 1;
-                        if (this._instances <= 0) {
-                            node.log(`[FINS] closing connection ~ ${id}`);
+                    close() {
+                        // this._instances -= 1;
+                        // if (this._instances <= 0) {
+                        // node.log(`closing connection ~ ${id}`);
+                        // client.close();
+                        // client = null;
+                        // node.log(`deleting connection from pool ~ ${id}`);
+                        // delete clients[id];
+                        // }
+                        // this._instances -= 1;
+                        if (client && client.connected) {
+                            node.log(`closing connection ~ ${id}`);
                             client.close();
-                            client = null;
-                            node.log(`[FINS] deleting connection from pool ~ ${id}`);
-                            delete clients[id];
                         }
+                        connecting = false;
                     },
+
+                    get connected() {
+                        return client && client.connected;
+                    },
+                    get connectionInfo() {
+                        if(client) {
+                            return {
+                                port: client.port,
+                                host: client.host,
+                                options: {...client.options},
+                            }
+                        }
+                        return {}
+                    }
                 };
 
                 client.on('open', () => {
                     if (client) {
-                        node.log(`[FINS] connected ~ ${id}`);
+                        node.log(`connected ~ ${id}`);
                         connecting = false;
                     }
                 });
                 // eslint-disable-next-line no-unused-vars
                 client.on('close', (err) => {
-                    node.log(`[FINS] connection closed ~ ${id}`);
+                    node.log(`connection closed ~ ${id}`);
                     connecting = false;
 
                     if (options.autoConnect && !options.preventAutoReconnect) {
-                        setTimeout(() => {
-                            if (options.autoConnect && !options.preventAutoReconnect) {
-                                node.log(`[FINS] autoConnect call from  error handler ~ ${id}`);
+                        finsClientConnection.reconnectTimer = setTimeout(() => {
+                            if (finsClientConnection.reconnectTimer && options.autoConnect && !options.preventAutoReconnect) {
+                                node.log(`autoConnect call from close handler ~ ${id}`);
                                 finsClientConnection.connect();
                             }
                         }, 5000); // TODO: Parametrise
@@ -216,7 +256,34 @@ module.exports = {
                 return finsClientConnection;
             }());
         }
-        clients[id]._instances += 1;
+
         return clients[id];
     },
+    link(node, connectionConfig) {
+        const c = this.get(node, connectionConfig)
+        c._instances++;
+    },
+    unlink(node, connectionConfig) {
+        const c = this.get(node, connectionConfig)
+        c._instances--;
+        if(c._instances <= 0) {
+            const id = connectionConfig.id;
+            delete clients[id];            
+        }
+    },
+    close(connectionConfig) {
+        const c = this.get(null, connectionConfig);
+        if(c && c.connected) {
+            c.close();
+        }
+        c.close();
+        if(c && c.reconnectTimer) {
+            clearTimeout(c.reconnectTimer);
+            c.reconnectTimer = null;
+        }
+        if(c) {
+            const id = connectionConfig.id;
+            delete clients[id];
+        }
+    }
 };
