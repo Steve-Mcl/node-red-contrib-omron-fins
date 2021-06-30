@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-var constants = require('omron-fins').FinsConstants;
-const {isInt } = require('./data_utilities');
+var {FinsConstants: constants, FinsDataUtils: {isInt}} = require('omron-fins');
+
 /*!
  * Get value of environment variable.
  * @param {RED} _RED - accessing RED object
