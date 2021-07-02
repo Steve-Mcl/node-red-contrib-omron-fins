@@ -245,7 +245,7 @@ module.exports = function (RED) {
 
             });
             if(node.client && node.client.connected) {
-                node.status({ fill: 'green', shape: 'ring', text: 'connected' });
+                node.status({ fill: 'green', shape: 'dot', text: 'connected' });
             } else {
                 node.status({ fill: 'grey', shape: 'ring', text: 'initialised' });
             }

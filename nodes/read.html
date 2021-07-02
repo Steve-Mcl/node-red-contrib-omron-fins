@@ -58,7 +58,8 @@ SOFTWARE.
     align: "left",
     icon: "read.png",
     label: function () {
-      return this.name || ((this.addressType == "str" && this.address != "") ? "Read: " + this.address : "FINS Read");
+      let staticParams = this.addressType == "str" && this.countType == "num";
+      return this.name || (staticParams ? ("Read: " + this.count + " from " + this.address) : "FINS Read");
     },
     oneditprepare: function () {
       var node = this;
