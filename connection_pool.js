@@ -222,12 +222,18 @@ module.exports = {
                     },
                     get connectionInfo() {
                         if(client) {
-                            return {
+                            const info = {
                                 port: client.port,
                                 host: client.host,
                                 options: {...client.options},
                             }
-                        }
+                            delete info.options.preventAutoReconnect;//not of interest
+                            if(client.protocol == "tcp") {
+                                info.options.tcp_server_node_no = client.server_node_no;//DA1
+                                info.options.tcp_client_node_no = client.client_node_no;//SA1
+                            }
+                            return info;
+                        }            
                         return {}
                     }
                 };
@@ -258,18 +264,6 @@ module.exports = {
         }
 
         return clients[id];
-    },
-    link(node, connectionConfig) {
-        const c = this.get(node, connectionConfig)
-        c._instances++;
-    },
-    unlink(node, connectionConfig) {
-        const c = this.get(node, connectionConfig)
-        c._instances--;
-        if(c._instances <= 0) {
-            const id = connectionConfig.id;
-            delete clients[id];            
-        }
     },
     close(connectionConfig) {
         const c = this.get(null, connectionConfig);
