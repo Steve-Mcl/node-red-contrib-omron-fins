@@ -209,7 +209,7 @@ module.exports = function (RED) {
                     break;
                 }
 
-                const opts = msg.finsOptions || {};
+                const opts = {};
                 let sid;
                 try {
                     opts.callback = finsReply;
