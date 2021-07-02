@@ -74,7 +74,6 @@ module.exports = {
 
                 const finsClientConnection = {
 
-                    _instances: 0,
                     write(address, data, opts, tag) {
                         if (!client.connected && options.preventAutoReconnect) {
                             throw new Error('Not connected!');
@@ -201,15 +200,6 @@ module.exports = {
                     },
 
                     close() {
-                        // this._instances -= 1;
-                        // if (this._instances <= 0) {
-                        // node.log(`closing connection ~ ${id}`);
-                        // client.close();
-                        // client = null;
-                        // node.log(`deleting connection from pool ~ ${id}`);
-                        // delete clients[id];
-                        // }
-                        // this._instances -= 1;
                         if (client && client.connected) {
                             node.log(`closing connection ~ ${id}`);
                             client.close();

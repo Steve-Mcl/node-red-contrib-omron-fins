@@ -254,10 +254,6 @@ module.exports = function (RED) {
         }
     }
     RED.nodes.registerType('FINS Control', omronControl);
-    // omronControl.prototype.close = function () {
-    //     if (this.client) {
-    //         this.client.disconnect();
-    //     }
-    // };
+
 };
 

@@ -243,9 +243,4 @@ module.exports = function (RED) {
         }
     }
     RED.nodes.registerType('FINS Read Multiple', omronReadMultiple);
-    // omronReadMultiple.prototype.close = function () {
-    //     if (this.client) {
-    //         this.client.disconnect();
-    //     }
-    // };
 };

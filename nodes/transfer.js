@@ -44,18 +44,12 @@ module.exports = function (RED) {
         /* ****************  Node status **************** */
         function nodeStatusError(err, msg, statusText) {
             if (err) {
-                console.error(err);
                 node.error(err, msg);
             } else {
-                console.error(statusText);
                 node.error(statusText, msg);
             }
             node.status({ fill: 'red', shape: 'dot', text: statusText });
         }
-
-        // function nodeStatusParameterError(err, msg, propName) {
-        //     nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value");
-        // }
 
         if (this.connectionConfig) {
 
@@ -63,7 +57,6 @@ module.exports = function (RED) {
             node.client = connection_pool.get(this, node.connectionConfig);
 
             this.client.on('error', function (error, seq) {
-                console.log('Error: ', error);
                 node.status({ fill: 'red', shape: 'ring', text: 'error' });
                 node.error(error, (seq && seq.tag ? seq.tag : seq));
             });
@@ -221,10 +214,5 @@ module.exports = function (RED) {
 
     }
     RED.nodes.registerType('FINS Transfer', omronTransfer);
-    // omronTransfer.prototype.close = function () {
-    //     if (this.client) {
-    //         this.client.disconnect();
-    //     }
-    // };
 };
 

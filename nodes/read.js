@@ -255,10 +255,6 @@ module.exports = function (RED) {
         }
     }
     RED.nodes.registerType('FINS Read', omronRead);
-    // omronRead.prototype.close = function () {
-    //     if (this.client) {
-    //         this.client.disconnect();
-    //     }
-    // };
+
 };
 
