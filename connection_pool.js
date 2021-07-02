@@ -187,7 +187,7 @@ module.exports = {
                     disconnect() {
                         options.preventAutoReconnect = true;
                         if (client) {
-                            client.close();
+                            client.disconnect();
                         }
                         connecting = false;
                     },
@@ -202,7 +202,7 @@ module.exports = {
                     close() {
                         if (client && client.connected) {
                             node.log(`closing connection ~ ${id}`);
-                            client.close();
+                            client.disconnect();
                         }
                         connecting = false;
                     },
