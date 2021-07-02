@@ -155,15 +155,7 @@ module.exports = function (RED) {
                 }
                 node.status({});//clear status
 
-                if (msg.disconnect === true || msg.topic === 'disconnect') {
-                    node.client.disconnect();
-                    return;
-                } else if (msg.connect === true || msg.topic === 'connect') {
-                    node.client.connect();
-                    return;
-                }
-
-                let command = 'status';
+                let command = '';
                 if (commandTypes.indexOf(node.commandType + '') >= 0) {
                     command = node.commandType;
                 } else {
