@@ -179,7 +179,7 @@ SOFTWARE.
     <dt class="required">Command<span class="property-type">string</span></dt>
     <dd>Specify the type of command.
       <ul>
-        <li>Connect to PLC: Open the connection to the PLC. If <code>options</code> are provided, they will be merged with existing node options. Supported options are <code>{host:string, port:number, timeoutMS: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code>. To automate this option, use the string value <code>disconnect</code></li>
+        <li>Connect to PLC: Open the connection to the PLC. If <code>options</code> are provided, they will be merged with existing node options. Supported options are <code>{host:string, port:number, timeout: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code>. To automate this option, use the string value <code>disconnect</code></li>
         <li>Disconnect PLC: Close the connection to the PLC. To automate this option, use the string value <code>status</code></li>
         <li>Read CPU UNIT Status: Sends a buffer. To automate this option, use the string value <code>status</code></li>
         <li>Read CPU UNIT Data: Sends an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>cpu-unit-data-read</code></li>
@@ -191,7 +191,7 @@ SOFTWARE.
     </dd>
   </dl> 
   <dt class="optional">Connect Options<span class="property-type">object</span></dt>
-  <dd>If specified, this must be an object containing one or more of the following options <code>{host:string, port:number, timeoutMS: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code></dd>
+  <dd>If specified, this must be an object containing one or more of the following options <code>{host:string, port:number, timeout: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code></dd>
   <dt class="optional">Clock value<span class="property-type">object</span></dt>
   <dd>The value to set in the PLC clock. This must be an object containing <code>{year, month, date, minute, second, day_of_week}</code> (<code>{second}</code> and <code>{day_of_week}</code> are optional)</dd>
   <h3>Output</h3>
@@ -202,7 +202,5 @@ SOFTWARE.
       Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
     </dd>
   </dl>
-  <h3>Connection control</h3>
-  <p><i>INFO: To open / close the FINS connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS node.</i></p>
 
 </script>

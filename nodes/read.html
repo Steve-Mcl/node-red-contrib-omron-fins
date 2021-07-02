@@ -216,7 +216,7 @@ SOFTWARE.
       Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
     </dd>
   </dl>
-  <h3>Connection control</h3>
-  <p><i>INFO: To open / close the FINS connection, send boolean <code>true</code> in <code>msg.connect</code> or <code>msg.disconnect</code>.  Alternatively, send string <code>connect</code> or <code>disconnect</code> in <code>msg.topic</code> to any FINS node.</i></p>
+  <h3>Advanced</h3>
+  <p><code>msg.finsOptions</code> can be used to route the FINS command to another network and node. e.g. <code>msg.finsOption = {"DNA": 2, "DA1": 10}; //route this command to FINS NETWORK2, NODE10</code> </p>
 
 </script>
