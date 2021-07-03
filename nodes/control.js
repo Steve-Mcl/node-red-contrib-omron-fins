@@ -42,6 +42,16 @@ module.exports = function (RED) {
         node.msgPropertyType = config.msgPropertyType || 'str';
         node.connectionConfig = RED.nodes.getNode(node.connection);
 
+        /* ****************  Node status **************** */
+        function nodeStatusError(err, msg, statusText) {
+            if (err) {
+                node.error(err, msg);
+            } else {
+                node.error(statusText, msg);
+            }
+            node.status({ fill: 'red', shape: 'dot', text: statusText });
+        }
+
         if (this.connectionConfig) {
             node.status({ fill: 'yellow', shape: 'ring', text: 'initialising' });
             node.client = connection_pool.get(this, node.connectionConfig);
@@ -60,40 +70,32 @@ module.exports = function (RED) {
                 node.status({ fill: 'green', shape: 'dot', text: 'connected' });
             });
             this.client.on('close', function () {
-                node.status({ fill: 'red', shape: 'dot', text: 'not connected' });
+                node.status({ fill: 'yellow', shape: 'dot', text: 'not connected' });
             });
             // eslint-disable-next-line no-unused-vars
             this.client.on('initialised', function (options) {
-                node.status({ fill: 'yellow', shape: 'dot', text: 'initialised' });
+                node.status({ fill: 'grey', shape: 'dot', text: 'initialised' });
             });
-
-            /* ****************  Node status **************** */
-            function nodeStatusError(err, msg, statusText) {
-                if (err) {
-                    node.error(err, msg);
-                } else {
-                    node.error(statusText, msg);
-                }
-                node.status({ fill: 'red', shape: 'dot', text: statusText });
-            }
 
             function finsReply(err, sequence) {
                 if (!err && !sequence) {
                     return;
                 }
-                var origInputMsg = (sequence && sequence.tag) || {};
+                const origInputMsg = (sequence && sequence.tag) || {};
                 try {
-                    if (err || sequence.error) {
-                        nodeStatusError(err || sequence.error, origInputMsg, 'error')
-                        return;
-                    }
-                    if (sequence.timeout) {
-                        nodeStatusError('timeout', origInputMsg, 'timeout');
-                        return;
-                    }
-                    if (sequence.response && sequence.sid != sequence.response.sid) {
-                        nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, 'Incorrect SID')
-                        return;
+                    if(sequence) {
+                        if (err || sequence.error) {
+                            nodeStatusError(((err && err.message) || "error"), origInputMsg, ((err && err.message) || "error") );
+                            return;
+                        }
+                        if (sequence.timeout) {
+                            nodeStatusError('timeout', origInputMsg, 'timeout');
+                            return;
+                        }
+                        if (sequence.response && sequence.sid != sequence.response.sid) {
+                            nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, 'Incorrect SID')
+                            return;
+                        }
                     }
                     if (!sequence || !sequence.response || sequence.response.endCode !== '0000' || sequence.response.command.commandCode !== sequence.request.command.commandCode) {
                         var ecd = 'bad response';
@@ -223,14 +225,18 @@ module.exports = function (RED) {
                     }
                 } catch (error) {
                     node.sid = null;
-                    nodeStatusError(error, msg, 'error');
-                    const debugMsg = {
-                        info: "control.js-->on 'input'",
-                        connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
-                        sid: sid,
-                        opts: opts,
-                    };
-                    node.debug(debugMsg);
+                    if(error.message == "not connected") {
+                        node.status({ fill: 'yellow', shape: 'dot', text: error.message });
+                    } else {
+                        nodeStatusError(error, msg, 'error');
+                        const debugMsg = {
+                            info: "control.js-->on 'input'",
+                            connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
+                            sid: sid,
+                            opts: opts,
+                        };
+                        node.debug(debugMsg);
+                    }
                     return;
                 }
 

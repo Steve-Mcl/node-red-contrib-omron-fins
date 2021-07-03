@@ -57,127 +57,91 @@ module.exports = {
 
     get(node, connectionConfig) {
         const id = connectionConfig.id;
-        let options = connectionConfig.options || {};
-        let port = parseInt(connectionConfig.port || options.port);
-        let host = connectionConfig.host || options.host;
-        let connect = connectionConfig.autoConnect == null ? true : connectionConfig.autoConnect;
+        let _options = { ...(connectionConfig.options || {}) };
+        let _port = parseInt(connectionConfig.port || _options.port);
+        let _host = connectionConfig.host || _options.host;
+        let _connect = connectionConfig.autoConnect == null ? true : connectionConfig.autoConnect;
 
         if (!clients[id]) {
-            clients[id] = (function () {
+            clients[id] = (function (port, host, options, connect) {
 
                 node.log(`Create new FinsClient. id:${id}, config: ${describe(host, port, options)}`);
-                let connecting = false;
-                let client = fins.FinsClient(port, host, options, connect);
-
+                let fins_client = fins.FinsClient(port, host, options, false);
                 options.autoConnect = options.autoConnect == null ? true : options.autoConnect;
-                options.preventAutoReconnect = false;
+                let connecting = false;
+                let preventAutoReconnect = true;
 
-                const finsClientConnection = {
-
+                const finsClientWrapper = {
                     write(address, data, opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
+                        checkConnection();
                         const _data = convertPayloadToDataArray(data);
                         if (!Array.isArray(_data)) {
                             throw new Error('data is not valid');
                         }
-                        const sid = client.write(address, _data, opts, tag);
-                        return sid;
+                        return fins_client.write(address, _data, opts, tag);
                     },
                     read(address, len, opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.read(address, parseInt(len), opts, tag);
-                        return sid;
+                        checkConnection();
+                        return fins_client.read(address, parseInt(len), opts, tag);
                     },
                     readMultiple(addresses, opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.readMultiple(addresses, opts, tag);
-                        return sid;
+                        checkConnection();
+                        return fins_client.readMultiple(addresses, opts, tag);
                     },
                     fill(address, value, count, opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.fill(address, value, parseInt(count), opts, tag);
-                        return sid;
+                        checkConnection();
+                        return fins_client.fill(address, value, parseInt(count), opts, tag);
                     },
                     transfer(srcAddress, dstAddress, count, opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.transfer(srcAddress, dstAddress, parseInt(count), opts, tag);
-                        return sid;
+                        checkConnection();
+                        return fins_client.transfer(srcAddress, dstAddress, parseInt(count), opts, tag);
                     },
                     status(opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.status(opts, tag);
-                        return sid;
+                        checkConnection();
+                        return fins_client.status(opts, tag);
                     },
                     run(opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.run(opts, tag);
-                        return sid;
+                        checkConnection();
+                        return fins_client.run(opts, tag);
                     },
                     stop(opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.stop(opts, tag);
-                        return sid;
+                        checkConnection();
+                        return fins_client.stop(opts, tag);
                     },
                     cpuUnitDataRead(opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.cpuUnitDataRead(opts, tag);
-                        return sid;
+                        checkConnection();
+                        return fins_client.cpuUnitDataRead(opts, tag);
                     },
                     clockRead(opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.clockRead(opts, tag);
-                        return sid;
+                        checkConnection();
+                        return fins_client.clockRead(opts, tag);
                     },
                     clockWrite(clock, opts, tag) {
-                        if (!client.connected && options.preventAutoReconnect) {
-                            throw new Error('Not connected!');
-                        }
-                        const sid = client.clockWrite(clock, opts, tag);
-                        return sid;
-                    },
-                    getAutoConnect() {
-                        return (options.autoConnect == true);
-                    },
-                    setAutoConnect(b) {
-                        options.autoConnect = (b == true);
+                        checkConnection();
+                        return fins_client.clockWrite(clock, opts, tag);
                     },
                     on(a, b) {
-                        client.on(a, b);
+                        fins_client.on(a, b);
                     },
                     connect(host, port, opts) {
-                        options.preventAutoReconnect = false;
-                        if (client && !client.connected && !connecting) {
+                        preventAutoReconnect = false;
+                        finsClientWrapper.reconnect(host, port, opts);
+                    },
+                    reconnect(host, port, opts) {
+                        if (!fins_client.connected && !connecting) {
                             try {
-                                node.log(`Connecting id:${id}, config: ${describe(this.connectionInfo.host, this.connectionInfo.port, this.connectionInfo.options)}`);
+                                node.log(`Connecting id:${id}, config: ${describe(finsClientWrapper.connectionInfo.host, finsClientWrapper.connectionInfo.port, finsClientWrapper.connectionInfo.options)}`);
                             // eslint-disable-next-line no-empty
                             } catch (error) { }
-                            connecting = true;
+                            
                             try {
-                                if(arguments.length == 0) {
-                                    client.reconnect();
-                                } else {
-                                    client.connect(host, port, opts);
-                                }
+                                fins_client.connect(host, port, opts);
+                                connecting = true;
+                                finsClientWrapper.reconnectTimeOver = setTimeout(() => {
+                                    connecting = false;
+                                    finsClientWrapper.reconnectTimeOver = null;
+                                }, 8000);
+
                             // eslint-disable-next-line no-empty
                             } catch (error) {
                                 node.error(error)
@@ -185,42 +149,42 @@ module.exports = {
                         }
                     },
                     disconnect() {
-                        options.preventAutoReconnect = true;
-                        if (client) {
-                            client.disconnect();
+                        preventAutoReconnect = true;
+                        if (fins_client) {
+                            fins_client.disconnect();
                         }
                         connecting = false;
                     },
                     stringToFinsAddress(addressString) {
-                        return client.stringToFinsAddress(addressString);
+                        return fins_client.stringToFinsAddress(addressString);
                     },
 
                     FinsAddressToString(decodedAddress, offsetWD, offsetBit) {
-                        return client.FinsAddressToString(decodedAddress, offsetWD, offsetBit);
+                        return fins_client.FinsAddressToString(decodedAddress, offsetWD, offsetBit);
                     },
 
                     close() {
-                        if (client && client.connected) {
-                            node.log(`closing connection ~ ${id}`);
-                            client.disconnect();
-                        }
                         connecting = false;
+                        if (fins_client && fins_client.connected) {
+                            node.log(`closing connection ~ ${id}`);
+                            fins_client.disconnect();
+                        }
                     },
 
                     get connected() {
-                        return client && client.connected;
+                        return fins_client && fins_client.connected;
                     },
+
                     get connectionInfo() {
-                        if(client) {
+                        if(fins_client) {
                             const info = {
-                                port: client.port,
-                                host: client.host,
-                                options: {...client.options},
+                                port: fins_client.port,
+                                host: fins_client.host,
+                                options: {...fins_client.options},
                             }
-                            delete info.options.preventAutoReconnect;//not of interest
-                            if(client.protocol == "tcp") {
-                                info.options.tcp_server_node_no = client.server_node_no;//DA1
-                                info.options.tcp_client_node_no = client.client_node_no;//SA1
+                            if(fins_client.protocol == "tcp") {
+                                info.options.tcp_server_node_no = fins_client.server_node_no;//DA1
+                                info.options.tcp_client_node_no = fins_client.client_node_no;//SA1
                             }
                             return info;
                         }            
@@ -228,46 +192,72 @@ module.exports = {
                     }
                 };
 
-                client.on('open', () => {
-                    if (client) {
-                        node.log(`connected ~ ${id}`);
+                fins_client.on('open', () => {
+                    try {
                         connecting = false;
-                    }
+                        if (finsClientWrapper.reconnectTimer) {
+                            clearTimeout(finsClientWrapper.reconnectTimer);
+                            finsClientWrapper.reconnectTimer = null;
+                        }
+                        node.log(`connected ~ ${id}`);
+                        // eslint-disable-next-line no-empty
+                    } catch (error) { }
                 });
+
                 // eslint-disable-next-line no-unused-vars
-                client.on('close', (err) => {
-                    node.log(`connection closed ~ ${id}`);
-                    connecting = false;
-
-                    if (options.autoConnect && !options.preventAutoReconnect) {
-                        finsClientConnection.reconnectTimer = setTimeout(() => {
-                            if (finsClientConnection.reconnectTimer && options.autoConnect && !options.preventAutoReconnect) {
-                                node.log(`autoConnect call from close handler ~ ${id}`);
-                                finsClientConnection.connect();
-                            }
-                        }, 5000); // TODO: Parametrise
-                    }
+                fins_client.on('close', (err) => {
+                    try {
+                        connecting = false;
+                        node.log(`connection closed ~ ${id}`);
+                        scheduleReconnect();
+                        // eslint-disable-next-line no-empty
+                    } catch (error) { }
                 });
 
-                return finsClientConnection;
-            }());
-        }
+                function checkConnection() {
+                    if (!finsClientWrapper.connected) {
+                        if (!preventAutoReconnect && !finsClientWrapper.reconnectTimer) {
+                            scheduleReconnect();
+                        }
+                        throw new Error('not connected');
+                    }
+                }
 
+                function scheduleReconnect() {
+                    if(!connecting) {
+                        if (!finsClientWrapper.reconnectTimer && options.autoConnect && !preventAutoReconnect) {
+                            finsClientWrapper.reconnectTimer = setTimeout(() => {
+                                if (finsClientWrapper.reconnectTimer && options.autoConnect && !preventAutoReconnect) {
+                                    finsClientWrapper.reconnectTimer = null;
+                                    node.log(`Scheduled reconnect ~ ${id}`);
+                                    finsClientWrapper.reconnect();
+                                }
+                            }, 2000); // TODO: Parametrise
+                        }
+                    }
+                }
+
+                if(connect) {
+                    finsClientWrapper.connect();
+                }
+                return finsClientWrapper;
+
+            }(_port, _host, _options, _connect));
+        }
         return clients[id];
     },
     close(connectionConfig) {
-        const c = this.get(null, connectionConfig);
-        if(c && c.connected) {
-            c.close();
+        const cli = this.get(null, connectionConfig);
+        if(cli) {
+            if(cli.reconnectTimer) {
+                clearTimeout(cli.reconnectTimer);
+                cli.reconnectTimer = null;
+            }
+            if(cli.connected) {
+                cli.close();
+            }
         }
-        c.close();
-        if(c && c.reconnectTimer) {
-            clearTimeout(c.reconnectTimer);
-            c.reconnectTimer = null;
-        }
-        if(c) {
-            const id = connectionConfig.id;
-            delete clients[id];
-        }
+        const id = connectionConfig.id;
+        delete clients[id];
     }
 };

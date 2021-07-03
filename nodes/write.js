@@ -72,11 +72,11 @@ module.exports = function (RED) {
                 node.status({ fill: 'green', shape: 'dot', text: 'connected' });
             });
             this.client.on('close', function () {
-                node.status({ fill: 'red', shape: 'dot', text: 'not connected' });
+                node.status({ fill: 'yellow', shape: 'dot', text: 'not connected' });
             });
             // eslint-disable-next-line no-unused-vars
             this.client.on('initialised', function (options) {
-                node.status({ fill: 'yellow', shape: 'dot', text: 'initialised' });
+                node.status({ fill: 'grey', shape: 'dot', text: 'initialised' });
             });
 
             function finsReply(err, sequence) {
@@ -85,22 +85,20 @@ module.exports = function (RED) {
                 }
                 const origInputMsg = (sequence && sequence.tag) || {};
                 try {
-                    if (err || sequence.error) {
-                        node.status({ fill: 'red', shape: 'ring', text: 'error' });
-                        nodeStatusError(err || sequence.error, origInputMsg, 'error');
-
-                        return;
+                    if(sequence) {
+                        if (err || sequence.error) {
+                            nodeStatusError(((err && err.message) || "error"), origInputMsg, ((err && err.message) || "error") );
+                            return;
+                        }
+                        if (sequence.timeout) {
+                            nodeStatusError('timeout', origInputMsg, 'timeout');
+                            return;
+                        }
+                        if (sequence.response && sequence.sid != sequence.response.sid) {
+                            nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, 'Incorrect SID');
+                            return;
+                        }
                     }
-                    if (sequence.timeout) {
-                        nodeStatusError('timeout', origInputMsg, 'timeout');
-                        return;
-                    }
-                    if (sequence.response && sequence.sid != sequence.response.sid) {
-                        nodeStatusError(`SID does not match! My SID: ${sequence.sid}, reply SID:${sequence.response.sid}`, origInputMsg, 'Incorrect SID');
-
-                        return;
-                    }
-
                     if (!sequence || !sequence.response || sequence.response.endCode !== '0000' || sequence.response.command.commandCode !== cmdExpected) {
                         let ecd = 'bad response';
                         if (sequence.response && sequence.response.command.commandCode !== cmdExpected)
@@ -187,20 +185,22 @@ module.exports = function (RED) {
                     sid = node.client.write(address, data, opts, msg);
                     if (sid > 0) node.status({ fill: 'yellow', shape: 'ring', text: 'write' });
                 } catch (error) {
-
-                    nodeStatusError(error, msg, 'error');
-                    const debugMsg = {
-                        info: "write.js-->on 'input' - try this.client.write(address, data, finsReply)",
-                        connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
-                        sid: sid,
-                        address: address,
-                        data: data,
-                        error: error
-                    };
-                    node.debug(debugMsg);
+                    if(error.message == "not connected") {
+                        node.status({ fill: 'yellow', shape: 'dot', text: error.message });
+                    } else {
+                        nodeStatusError(error, msg, 'error');
+                        const debugMsg = {
+                            info: "write.js-->on 'input' - try this.client.write(address, data, finsReply)",
+                            connection: `host: ${node.connectionConfig.host}, port: ${node.connectionConfig.port}`,
+                            sid: sid,
+                            address: address,
+                            data: data,
+                            error: error
+                        };
+                        node.debug(debugMsg);
+                    }
                     return;
                 }
-
             });
             if(node.client && node.client.connected) {
                 node.status({ fill: 'green', shape: 'dot', text: 'connected' });
