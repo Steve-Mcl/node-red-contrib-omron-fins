@@ -39,6 +39,38 @@ module.exports = function (RED) {
         node.msgPropertyType = config.msgPropertyType || 'str';
         node.connectionConfig = RED.nodes.getNode(node.connection);
 
+        /* ****************  Listeners **************** */
+        function onClientError(error, seq) {
+            node.status({ fill: 'red', shape: 'ring', text: 'error' });
+            node.error(error, (seq && seq.tag ? seq.tag : seq));
+        }
+        function onClientFull() {
+            node.throttleUntil = Date.now() + 1000;
+            node.warn('Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of operations to this connection.');
+            node.status({ fill: 'red', shape: 'dot', text: 'queue full' });
+        }
+        // eslint-disable-next-line no-unused-vars
+        function onClientOpen(remoteInfo) {
+            node.status({ fill: 'green', shape: 'dot', text: 'connected' });
+        }
+        function onClientClose() {
+            node.status({ fill: 'yellow', shape: 'dot', text: 'not connected' });
+        }
+        // eslint-disable-next-line no-unused-vars
+        function onClientInit(options) {
+            node.status({ fill: 'grey', shape: 'dot', text: 'initialised' });
+        }
+
+        function removeAllListeners() {
+            if(node.client) {
+                node.client.off('error', onClientError);
+                node.client.off('full', onClientFull);
+                node.client.off('open', onClientOpen);
+                node.client.off('close', onClientClose);
+                node.client.off('initialised', onClientInit);
+            }
+        }
+
         /* ****************  Node status **************** */
         function nodeStatusError(err, msg, statusText) {
             if (err) {
@@ -49,35 +81,17 @@ module.exports = function (RED) {
             node.status({ fill: 'red', shape: 'dot', text: statusText });
         }
 
-        function nodeStatusParameterError(err, msg, propName) {
-            nodeStatusError(err, msg, "Unable to evaluate property '" + propName + "' value");
-        }
-
         if (this.connectionConfig) {
-
             node.status({ fill: 'yellow', shape: 'ring', text: 'initialising' });
-            node.client = connection_pool.get(this, node.connectionConfig);
-
-            this.client.on('error', function (error, seq) {
-                node.status({ fill: 'red', shape: 'ring', text: 'error' });
-                node.error(error, (seq && seq.tag ? seq.tag : seq));
-            });
-            this.client.on('full', function () {
-                node.status({ fill: 'red', shape: 'dot', text: 'queue full' });
-                node.throttleUntil = Date.now() + 1000;
-                node.warn('Client buffer is saturated. Requests for the next 1000ms will be ignored. Consider reducing poll rate of operations to this connection.');
-            });
-            // eslint-disable-next-line no-unused-vars
-            this.client.on('open', function (remoteInfo) {
-                node.status({ fill: 'green', shape: 'dot', text: 'connected' });
-            });
-            this.client.on('close', function () {
-                node.status({ fill: 'yellow', shape: 'dot', text: 'not connected' });
-            });
-            // eslint-disable-next-line no-unused-vars
-            this.client.on('initialised', function (options) {
-                node.status({ fill: 'grey', shape: 'dot', text: 'initialised' });
-            });
+            if(node.client) {
+                node.client.removeAllListeners();
+            }
+            node.client = connection_pool.get(node, node.connectionConfig);
+            this.client.on('error', onClientError);
+            this.client.on('full', onClientFull);
+            this.client.on('open', onClientOpen);
+            this.client.on('close', onClientClose);
+            this.client.on('initialised', onClientInit);
 
             function finsReply(err, sequence) {
                 if (!err && !sequence) {
@@ -137,6 +151,7 @@ module.exports = function (RED) {
             }
 
             this.on('close', function (done) {
+                removeAllListeners();
                 if (done) done();
             });
 
@@ -162,7 +177,7 @@ module.exports = function (RED) {
                 let data;
                 RED.util.evaluateNodeProperty(node.data, node.dataType, node, msg, function (err, value) {
                     if (err) {
-                        nodeStatusParameterError(err, msg, 'data');
+                        nodeStatusError(err, msg, 'invalid data');
                         return;//halt flow!
                     } else {
                         data = value;
@@ -209,7 +224,7 @@ module.exports = function (RED) {
             }
 
         } else {
-            node.status({ fill: 'red', shape: 'dot', text: 'configuration not setup' });
+            node.status({ fill: 'red', shape: 'dot', text: 'Connection config missing' });
         }
 
     }

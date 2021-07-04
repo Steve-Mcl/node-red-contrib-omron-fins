@@ -121,7 +121,22 @@ module.exports = {
                         return fins_client.clockWrite(clock, opts, tag);
                     },
                     on(a, b) {
-                        fins_client.on(a, b);
+                        try {
+                            fins_client.on(a, b);
+                            // eslint-disable-next-line no-empty
+                        } catch (error) { }
+                    },
+                    off(a, b) {
+                        try {
+                            fins_client.off(a, b);
+                            // eslint-disable-next-line no-empty
+                        } catch (error) { }
+                    },
+                    removeAllListeners() {
+                        try {
+                            fins_client.removeAllListeners();
+                        // eslint-disable-next-line no-empty
+                        } catch (error) { }
                     },
                     connect(host, port, opts) {
                         preventAutoReconnect = false;
@@ -253,6 +268,7 @@ module.exports = {
                 clearTimeout(cli.reconnectTimer);
                 cli.reconnectTimer = null;
             }
+            cli.removeAllListeners();
             if(cli.connected) {
                 cli.close();
             }
