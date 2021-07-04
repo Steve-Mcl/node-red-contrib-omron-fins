@@ -122,6 +122,11 @@ SOFTWARE.
 
 <script type="text/html" data-help-name="FINS Fill">
   <p>Fill consecutive 16 bit WORD values in an OMRON PLC using FINS protocol</p>
+  <h3>Foreword</h3>
+  <dl class="message-properties">
+    Example flows have been included to help you get started. 
+    Click the hamburger menu <a class="button" href="#"><i class="fa fa-bars"></i></a>, select <b>import</b> then <b>examples</b> (or press <kbd>ctrl+i</kbd>)
+  </dl>
   <h3>Properties</h3>
   <dl class="message-properties">
     <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
@@ -139,7 +144,7 @@ SOFTWARE.
         <li>C50 - Counter 50 PV</li>
       </ul>
     </dd>
-    <dt class="required">Value<span class="property-type">number | Number[] | bool | bool[] | string</span></dt>
+    <dt class="required">Value<span class="property-type">number | number[] | bool | bool[] | string</span></dt>
     <dd>Value to fill in the PLC Address[count] specified</dd>
     <dt class="required">Count<span class="property-type">string</span></dt>
     <dd>The number of PLC Memory addresses to fill with the specified value</dd>

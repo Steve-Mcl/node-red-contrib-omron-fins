@@ -84,8 +84,8 @@ SOFTWARE.
         return $(varSel).typedInput('type', typeVal);
       }
 
-      const $connectOptionsField = setupTypedInput('connectOptions', [{value:'none', label:'none', hasValue: false }, 'msg', 'flow', 'global'], 'none');
-      const $clockField = setupTypedInput('clock', ['msg', 'json', 'flow', 'global'], 'json');
+      const $connectOptionsField = setupTypedInput('connectOptions', [{value:'none', label:'none (use existing connection options)', hasValue: false }, 'msg', 'flow', 'global'], 'none');
+      const $clockField = setupTypedInput('clock', ['json', 'msg', 'flow', 'global'], 'json');
       const $msgPropertyField = setupTypedInput('msgProperty', ['msg'], 'msg');
 
       const controlOption = {
@@ -106,7 +106,8 @@ SOFTWARE.
       $commandField.on("change", function() {
         let t = $commandField.typedInput('type') || '';
         if(['clock-write','msg','flow','global','env'].indexOf(t) >= 0){
-          $('#node-red-contrib-omron-fins-control-clock-row').show(); 
+          $('#node-red-contrib-omron-fins-control-clock-row').show();
+          $('#node-red-contrib-omron-fins-control-clock-row div.red-ui-typedInput-container.input-error').removeClass('input-error')
         } else {
           $('#node-red-contrib-omron-fins-control-clock-row').hide();
         }
@@ -126,6 +127,8 @@ SOFTWARE.
         $('#omron-fins-command-tip').html(v)
       });
       $commandField.trigger('change');
+
+      
     },
     oneditresize() {
       setTimeout(() => {
@@ -165,11 +168,16 @@ SOFTWARE.
     <label for="node-input-connectOptions"><i class="fa fa-code"></i> <span data-i18n="read.label.connectOptions"> Connect Opts</span></label>
     <input type="hidden" id="node-input-connectOptionsType">
     <input style="width:70%" type="text" id="node-input-connectOptions" placeholder="options">
-  </div> 
+  </div>
 </script>
 
 <script type="text/html" data-help-name="FINS Control">
   <p>A node to operate PLC control commands and status requests</p>
+  <h3>Foreword</h3>
+  <dl class="message-properties">
+    Example flows have been included to help you get started. 
+    Click the hamburger menu <a class="button" href="#"><i class="fa fa-bars"></i></a>, select <b>import</b> then <b>examples</b> (or press <kbd>ctrl+i</kbd>)
+  </dl>
   <h3>Properties</h3>
   <dl class="message-properties">
     <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
@@ -179,8 +187,8 @@ SOFTWARE.
     <dt class="required">Command<span class="property-type">string</span></dt>
     <dd>Specify the type of command.
       <ul>
-        <li>Connect to PLC: Open the connection to the PLC. If <code>options</code> are provided, they will be merged with existing node options. Supported options are <code>{host:string, port:number, timeout: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code>. To automate this option, use the string value <code>disconnect</code></li>
-        <li>Disconnect PLC: Close the connection to the PLC. To automate this option, use the string value <code>status</code></li>
+        <li>Connect to PLC: Open the connection to the PLC. If <code>options</code> are provided, they will be merged with existing node options. Supported properties are <code>{protocol:string, host:string, port:number, timeout: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code>. To automate this option, use the string value <code>connect</code></li>
+        <li>Disconnect PLC: Close the connection to the PLC. To automate this option, use the string value <code>disconnect</code></li>
         <li>Read CPU UNIT Status: Sends a buffer. To automate this option, use the string value <code>status</code></li>
         <li>Read CPU UNIT Data: Sends an object with PLC address keys and 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>cpu-unit-data-read</code></li>
         <li>Set PLC Mode to STOP/PROGRAM: Sends an array of 16 bit signed or true/false bool values in the msg property specified by "Output property". To automate this option, use the string value <code>stop</code></li>
@@ -191,14 +199,24 @@ SOFTWARE.
     </dd>
   </dl> 
   <dt class="optional">Connect Options<span class="property-type">object</span></dt>
-  <dd>If specified, this must be an object containing one or more of the following options <code>{host:string, port:number, timeout: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code></dd>
+  <dd>
+    This is only relevant when the command is <code>connect</code><br>
+    If specified, this must be an object containing one or more of the following options <code>{protocol:string, host:string, port:number, timeout: number, DNA:number, DA1:number, DA2:number, SNA:number, SA1:number, SA2:number}</code><br>
+    If omitted, the command will use last-set/current options
+  </dd>
   <dt class="optional">Clock value<span class="property-type">object</span></dt>
-  <dd>The value to set in the PLC clock. This must be an object containing <code>{year, month, date, minute, second, day_of_week}</code> (<code>{second}</code> and <code>{day_of_week}</code> are optional)</dd>
+  <dd>
+    This is only relevant when the command is <code>clock-write</code><br>
+    The value to set in the PLC clock. This must be an object containing <code>{year, month, date, minute, second, day_of_week}</code> (<code>{second}</code> and <code>{day_of_week}</code> are optional)</dd>
   <h3>Output</h3>
   <dl class="message-properties">
-    <dt>payload <span class="property-type">array</span></dt>
+    <dt>payload <span class="property-type">object</span></dt>
     <dd>
-      The values read from the PLC.<br>
+      Value read from PLC (depends on operation).<br>
+      <code>status</code> command will return an object with status values from the PLC<br>
+      <code>cpu-unit-data-read</code> command will return an object with unit statuses values from the PLC<br>
+      <code>clock-read</code> command will return the clock values<br>
+      Other commands typically return a positive number upon successful operation. This value is the SID of the operation (good result)<br>
       Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
     </dd>
   </dl>

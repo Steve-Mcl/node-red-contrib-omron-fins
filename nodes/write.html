@@ -105,6 +105,11 @@ SOFTWARE.
 
 <script type="text/html" data-help-name="FINS Write">
   <p>Write 16 bit WORD or BIT data to an OMRON PLC using FINS protocol</p>
+  <h3>Foreword</h3>
+  <dl class="message-properties">
+    Example flows have been included to help you get started. 
+    Click the hamburger menu <a class="button" href="#"><i class="fa fa-bars"></i></a>, select <b>import</b> then <b>examples</b> (or press <kbd>ctrl+i</kbd>)
+  </dl>
   <h3>Properties</h3>
   <dl class="message-properties">
     <dt class="required">Connection<span class="property-type">FINS Connection</span></dt>
@@ -124,13 +129,13 @@ SOFTWARE.
         <li>W0.0 - Work Area WORD 0 BIT 0</li>
         <li>A264 - Auxiliary Area WORD 264</li>
         <li>A0.1 - Auxiliary Area WORD 0 BIT 1</li>
-        <li>DR10 - Data Register WORD 10</li>
-        <li>IR0 - Index Register WORD 0</li>
+        <li>DR10 - Data Register 10</li>
+        <li>IR0 - Index Register 0</li>
         <li>T50 - Timer 50 PV</li>
         <li>C50 - Counter 50 PV</li>
       </ul>
     </dd>
-    <dt class="required">Data<span class="property-type">number | Number[] | bool | bool[] | string</span></dt>
+    <dt class="required">Data<span class="property-type">number | number[] | bool | bool[] | string</span></dt>
     <dd>Data to write to the PLC</dd>
   </dl>
 

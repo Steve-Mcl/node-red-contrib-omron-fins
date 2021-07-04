@@ -13,6 +13,8 @@ Tested on CV, CP, CS, CJ, NJ and NX PLCs (the ones with FINS support)
 * read-multiple - read several disparate address values
 * transfer - copy 1 or more data values from one memory area to another
 * control - this has the following functions...
+  * Connect PLC
+  * Disconnect PLC
   * Get PLC Status
   * Get PLC Unit Data
   * Set PLC STOP/PROGRAM mode

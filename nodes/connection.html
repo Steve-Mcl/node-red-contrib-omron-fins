@@ -125,9 +125,9 @@ SOFTWARE.
     </div>
 </div>
 <div class="form-row">
-    <div style="display: inline-block;width: calc(100% - 20px) !important;max-width: unset !important;"
-        class="form-tips">
-        Read the built in help on the side-bar for a description of each control parameter
+    <div style="display: inline-block;width: calc(100% - 20px) !important;max-width: unset !important;" class="form-tips">
+        See the <span id="omron-fins-connection-help-link" style="text-decoration: underline;">built in help</span> on the side-bar for a description of each control parameter. 
+        See the <a href="https://flows.nodered.org/node/node-red-contrib-omron-fins" target="_blank">readme<i class="fa fa-external-link"></i></a> for additional help.
     </div>
 </div>
 </script>
@@ -180,6 +180,14 @@ SOFTWARE.
 </script>
 
 <script type="text/javascript">
+(function(){
+    function showSidebarHelpPanel(){ 
+        if(RED.sidebar.help) {
+            RED.sidebar.help.show();//  >= V1.1.0
+        } else {
+            RED.sidebar.show("info");// <  V1.1.0
+        }
+    }
     RED.nodes.registerType('FINS Connection', {
         category: 'config',
         color: '#0090d4',
@@ -207,16 +215,17 @@ SOFTWARE.
             let l = this.host + ":" + this.port;
             if (this.protocolType == "env") {
                 return l;
-            } else if (this.protocolType == "tcp") {
-                l += " (tcp)";
             } else {
-                l += " (udp)";
+                l += " (" + this.protocolType + ")";
             }
             return l;
         },
         oneditprepare() {
             const node = this;
             node.autoConnect = node.autoConnect == null ? true: node.autoConnect;
+            $('#omron-fins-connection-help-link').on("click", function() {
+                showSidebarHelpPanel();
+            });
             $("#node-config-input-autoConnect").prop('checked', node.autoConnect);
             $("#node-config-input-protocol").typedInput({
                 default: 'udp',
@@ -229,4 +238,5 @@ SOFTWARE.
             })
         }
     });
+})();
 </script>
