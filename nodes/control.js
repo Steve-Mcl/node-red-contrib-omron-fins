@@ -201,13 +201,17 @@ module.exports = function (RED) {
                     clientFn = node.client.clockRead;
                     break;
                 case 'clock-write':
-                    clockWriteData = RED.util.evaluateNodeProperty(node.clock, node.clockType, node, msg);
-                    if(!clockWriteData || typeof clockWriteData != "object") {
-                        nodeStatusError("Cannot set clock. msg.clock is missing or invalid.", msg, "error");
+                    try {
+                        clockWriteData = RED.util.evaluateNodeProperty(node.clock, node.clockType, node, msg);
+                        if(!clockWriteData || typeof clockWriteData != "object") {
+                            throw new Error();
+                        }
+                        clientFn = node.client.clockWrite;
+                        params.push(clockWriteData);
+                    } catch (error) {
+                        nodeStatusError("Cannot set clock. Clock Value is missing or invalid.", msg, "Clock Value is missing or invalid");
                         return;
                     }
-                    clientFn = node.client.clockWrite;
-                    params.push(clockWriteData);
                     break;
                 }
 
