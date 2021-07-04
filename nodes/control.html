@@ -36,6 +36,7 @@ SOFTWARE.
 </style>
 
 <script type='text/javascript'>
+
   RED.nodes.registerType('FINS Control', {
     category: 'OMRON',
     color: '#0090d4',
@@ -84,9 +85,9 @@ SOFTWARE.
         return $(varSel).typedInput('type', typeVal);
       }
 
-      const $connectOptionsField = setupTypedInput('connectOptions', [{value:'none', label:'none (use existing connection options)', hasValue: false }, 'msg', 'flow', 'global'], 'none');
-      const $clockField = setupTypedInput('clock', ['json', 'msg', 'flow', 'global'], 'json');
-      const $msgPropertyField = setupTypedInput('msgProperty', ['msg'], 'msg');
+      setupTypedInput('connectOptions', [{value:'none', label:'none (use existing connection options)', hasValue: false }, 'msg', 'flow', 'global'], 'none');
+      setupTypedInput('clock', ['json', 'msg', 'flow', 'global'], 'json');
+      setupTypedInput('msgProperty', ['msg'], 'msg');
 
       const controlOption = {
         "connect": { label: 'Connect to PLC', value: 'connect', title: 'Connect/reconnect to PLC. If "Connect Opts" are provided, they will be merged with existing connection options. See built in help for more info.', hasValue: false},
