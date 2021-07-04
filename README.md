@@ -3,14 +3,16 @@ node-red-contrib-omron-fins
 
 ## Overview
 This is a Node-RED node module to directly interface with OMRON PLCs over FINS Ethernet protocol. 
-For now it only supports READ and WRITE of WORD or BIT addresses over FINS UDP.
 Tested on CV, CP, CS, CJ, NJ and NX PLCs (the ones with FINS support)
+
+Example flows have been included to help you get started. 
+In the node-red editor, click the hamburger menu, select <b>import</b> then <b>examples</b> (or press <kbd>ctrl+i</kbd>)
 
 ### NODES
 * read - read 1 or more WORDs or bits
 * write - write 1 or more WORDs or bits
 * fill - fill 1 or more consecutive addresses with a value
-* read-multiple - read several disparate address values
+* read-multiple - read several disparate WORD or BIT address values
 * transfer - copy 1 or more data values from one memory area to another
 * control - this has the following functions...
   * Connect PLC
@@ -52,7 +54,7 @@ The simplest method is to install via the pallet manager in node red. Simply sea
 
 Run the following command in the root directory of your Node-RED install  (usually `~/.node-red` or `%userprofile%\.node-red`)
 
-    npm node-red-contrib-omron-fins
+    npm install node-red-contrib-omron-fins
 
 Or, install direct from github
 
