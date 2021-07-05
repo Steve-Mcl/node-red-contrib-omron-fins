@@ -119,15 +119,15 @@ SOFTWARE.
         <div class="node-red-contrib-fins-flag">
             <label for="node-config-input-autoConnect">
                 <input type="checkbox" id="node-config-input-autoConnect" autocomplete="off">
-                <span data-i18n="omron-connection.label.autoConnect">Auto connect PLC</span>
+                <span data-i18n="omron-connection.label.autoConnect"> Auto Connect</span>
             </label>
         </div>
     </div>
 </div>
 <div class="form-row">
-    <div style="display: inline-block;width: calc(100% - 20px) !important;max-width: unset !important;" class="form-tips">
+    <div id="omron-fins-connection-tip" style="display: inline-block;width: calc(100% - 20px) !important;" class="form-tips">
         See the <span id="omron-fins-connection-help-link" style="text-decoration: underline;">built in help</span> on the side-bar for a description of each control parameter. 
-        See the <a href="https://flows.nodered.org/node/node-red-contrib-omron-fins" target="_blank">readme<i class="fa fa-external-link"></i></a> for additional help.
+        See the <a href="https://flows.nodered.org/node/node-red-contrib-omron-fins" target="_blank">readme <i class="fa fa-external-link"></i></a> for additional help.
     </div>
 </div>
 </script>
@@ -177,10 +177,16 @@ SOFTWARE.
     Source Unit: Enter 0 for CPU, 10 to 1F for CPU BUS Unit (10+Unit), E1 for inner board
 </dd>
 
+<dt>Auto Connect</dt>
+<dd>
+    If Auto Connect is checked, the connection to the PLC will be made automatically.  If Auto Connect is not checked, you can use a "FINS Control" node to connect to the PLC. This is useful for connecting to a dynamic connection by providing (optional) host/port/fins settings. 
+</dd>
+
 </script>
 
 <script type="text/javascript">
 (function(){
+    let resizeOk = false;
     function showSidebarHelpPanel(){ 
         if(RED.sidebar.help) {
             RED.sidebar.help.show();//  >= V1.1.0
@@ -222,6 +228,7 @@ SOFTWARE.
         },
         oneditprepare() {
             const node = this;
+            resizeOk = true;
             node.autoConnect = node.autoConnect == null ? true: node.autoConnect;
             $('#omron-fins-connection-help-link').on("click", function() {
                 showSidebarHelpPanel();
@@ -236,6 +243,14 @@ SOFTWARE.
                 ],
                 typeField: $("#node-config-input-protocolType")
             })
+        },
+        oneditresize() {
+            if(resizeOk) {
+                resizeOk = false;
+                setTimeout(() => {
+                    $('#omron-fins-connection-tip').css('max-width', 'unset');
+                }, 300);
+            }
         }
     });
 })();

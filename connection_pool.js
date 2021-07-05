@@ -67,9 +67,8 @@ module.exports = {
 
                 node.log(`Create new FinsClient. id:${id}, config: ${describe(host, port, options)}`);
                 let fins_client = fins.FinsClient(port, host, options, false);
-                options.autoConnect = options.autoConnect == null ? true : options.autoConnect;
                 let connecting = false;
-                let preventAutoReconnect = true;
+                let inhibitAutoReconnect = true;
 
                 const finsClientWrapper = {
                     write(address, data, opts, tag) {
@@ -139,7 +138,7 @@ module.exports = {
                         } catch (error) { }
                     },
                     connect(host, port, opts) {
-                        preventAutoReconnect = false;
+                        inhibitAutoReconnect = false; //as `connect` is being called, assume the user wants the connection to auto recover.
                         finsClientWrapper.reconnect(host, port, opts);
                     },
                     reconnect(host, port, opts) {
@@ -164,10 +163,12 @@ module.exports = {
                         }
                     },
                     disconnect() {
-                        preventAutoReconnect = true;
+                        inhibitAutoReconnect = true; //as `disconnect` is being called, assume the user wants to stay disconnected.
                         if (fins_client) {
                             fins_client.disconnect();
                         }
+                        clearTimeout(finsClientWrapper.reconnectTimeOver);
+                        finsClientWrapper.reconnectTimeOver = null;
                         connecting = false;
                     },
                     stringToFinsAddress(addressString) {
@@ -209,11 +210,11 @@ module.exports = {
 
                 fins_client.on('open', () => {
                     try {
+                        clearTimeout(finsClientWrapper.reconnectTimeOver);
+                        finsClientWrapper.reconnectTimeOver = null;
+                        clearTimeout(finsClientWrapper.reconnectTimer);
                         connecting = false;
-                        if (finsClientWrapper.reconnectTimer) {
-                            clearTimeout(finsClientWrapper.reconnectTimer);
-                            finsClientWrapper.reconnectTimer = null;
-                        }
+                        finsClientWrapper.reconnectTimer = null;
                         node.log(`connected ~ ${id}`);
                         // eslint-disable-next-line no-empty
                     } catch (error) { }
@@ -222,6 +223,8 @@ module.exports = {
                 // eslint-disable-next-line no-unused-vars
                 fins_client.on('close', (err) => {
                     try {
+                        clearTimeout(finsClientWrapper.reconnectTimeOver);
+                        finsClientWrapper.reconnectTimeOver = null;
                         connecting = false;
                         node.log(`connection closed ~ ${id}`);
                         scheduleReconnect();
@@ -231,7 +234,7 @@ module.exports = {
 
                 function checkConnection() {
                     if (!finsClientWrapper.connected) {
-                        if (!preventAutoReconnect && !finsClientWrapper.reconnectTimer) {
+                        if (!inhibitAutoReconnect && !finsClientWrapper.reconnectTimer) {
                             scheduleReconnect();
                         }
                         throw new Error('not connected');
@@ -240,9 +243,9 @@ module.exports = {
 
                 function scheduleReconnect() {
                     if(!connecting) {
-                        if (!finsClientWrapper.reconnectTimer && options.autoConnect && !preventAutoReconnect) {
+                        if (!finsClientWrapper.reconnectTimer && !inhibitAutoReconnect) {
                             finsClientWrapper.reconnectTimer = setTimeout(() => {
-                                if (finsClientWrapper.reconnectTimer && options.autoConnect && !preventAutoReconnect) {
+                                if (finsClientWrapper.reconnectTimer && !inhibitAutoReconnect) {
                                     finsClientWrapper.reconnectTimer = null;
                                     node.log(`Scheduled reconnect ~ ${id}`);
                                     finsClientWrapper.reconnect();
@@ -264,10 +267,8 @@ module.exports = {
     close(connectionConfig) {
         const cli = this.get(null, connectionConfig);
         if(cli) {
-            if(cli.reconnectTimer) {
-                clearTimeout(cli.reconnectTimer);
-                cli.reconnectTimer = null;
-            }
+            clearTimeout(cli.reconnectTimer);
+            cli.reconnectTimer = null;
             cli.removeAllListeners();
             if(cli.connected) {
                 cli.close();
