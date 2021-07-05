@@ -57,6 +57,12 @@ SOFTWARE.
     <input style="width: 70%;" type="text" id="node-config-input-protocol">
 </div>
 <div class="form-row">
+    <label for="node-config-input-MODE"><i class="fa fa-dot-circle-o"></i> <span
+            data-i18n="omron-connection.label.MODE">MODE</span></label>
+    <input type="text" hidden="true" id="node-config-input-MODEType">
+    <input style="width: 70%;" type="text" id="node-config-input-MODE">
+</div>
+<div class="form-row">
     <label for="node-config-input-host"><i class="icon-globe"></i> <span
             data-i18n="omron-connection.label.host">Host</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-host" placeholder="192.168.x.x">
@@ -65,15 +71,6 @@ SOFTWARE.
     <label for="node-config-input-port"><i class="fa fa-random"></i> <span
             data-i18n="omron-connection.label.port">Port</span></label>
     <input style="width: 70%;" type="text" id="node-config-input-port" placeholder="9600">
-</div>
-<div class="form-row">
-    <label for="node-config-input-MODE"><i class="fa fa-dot-circle-o"></i> <span
-            data-i18n="omron-connection.label.MODE">MODE</span></label>
-    <select style="width: 70%;" id="node-config-input-MODE">
-        <option value="CSCJ">CP/CS/CJ</option>
-        <option value="NJNX">NJ/NX</option>
-        <option value="CV">CV</option>
-    </select>
 </div>
 <div class="form-row">
     <label for="node-config-input-ICF" title="Information Control Field: Default = 0x80"><i class="fa fa-cog"></i> <span
@@ -202,7 +199,8 @@ SOFTWARE.
             name: { value: "" },
             host: { value: "192.168.0.1", required: true },
             port: { value: 9600, required: true/*, validate: RED.validators.number()*/ },
-            MODE: { value: "CSCJ" },
+            MODE: { value: "" },
+            MODEType: { value: "CS" },
             protocol: { value: "" },
             protocolType: { value: "udp" },
             ICF: { value: 0x80 },//, validate: RED.validators.number() },
@@ -242,6 +240,24 @@ SOFTWARE.
                     "env",
                 ],
                 typeField: $("#node-config-input-protocolType")
+            })
+
+            if(!node.MODEType && (node.MODE == "CSCJ" || node.MODE == "NJNX" || node.MODE == "CV")) {
+                node.MODEType = node.MODE.substr(0,2);
+                $("#node-config-input-MODEType").val(node.MODEType);
+            }
+            $("#node-config-input-MODE").typedInput({
+                default: 'CJ',
+                types: [
+                    { value: "CV", label: 'CV', hasValue: false },
+                    { value: "CS", label: 'CS', hasValue: false },
+                    { value: "CJ", label: 'CJ', hasValue: false },
+                    { value: "CP", label: 'CP', hasValue: false },
+                    { value: "NJ", label: 'NJ', hasValue: false },
+                    { value: "NX", label: 'NX', hasValue: false },
+                    "env",
+                ],
+                typeField: $("#node-config-input-MODEType")
             })
         },
         oneditresize() {
