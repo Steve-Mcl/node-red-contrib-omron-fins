@@ -213,16 +213,7 @@ SOFTWARE.
             autoConnect: { value: false }
         },
         label: function () {
-            if (this.name) {
-                return this.name;
-            }
-            let l = this.host + ":" + this.port;
-            if (this.protocolType == "env") {
-                return l;
-            } else {
-                l += " (" + this.protocolType + ")";
-            }
-            return l;
+            return this.name || ((this.host && this.port) ? this.host + ":" + this.port : "FINS Connection");
         },
         oneditprepare() {
             const node = this;
