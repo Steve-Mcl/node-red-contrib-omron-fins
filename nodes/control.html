@@ -216,7 +216,7 @@ SOFTWARE.
   SA1:number,      //Source Node Number 
   SA2:number,      //Source Unit Number
   timeout: number  //timeout in milliseconds
-}</pre></code><br>
+}</pre></code>
       If omitted, the command will use last-set/current options
     </dd>
     <dt class="optional">Clock value<span class="property-type">object</span></dt>
@@ -238,11 +238,14 @@ SOFTWARE.
   <dl class="message-properties">
     <dt>payload <span class="property-type">object</span></dt>
     <dd>
-      Value read from PLC (depends the command).<br>
-      <code>status</code> command will return an object with status values from the PLC<br>
-      <code>cpu-unit-data-read</code> command will return an object with unit statuses values from the PLC<br>
-      <code>clock-read</code> command will return and object containing the clock values<br>
-      Other commands typically return a positive number upon successful operation. This value is the SID of the operation (good result)<br>
+      <code>payload</code> will contain the value read from PLC (depends the command)...
+      <ul>
+        <li>The <code>status</code> command will return an object with status values from the PLC</li>
+        <li>The <code>cpu-unit-data-read</code> command will return an object with unit statuses values from the PLC</li>
+        <li>The <code>clock-read</code> command will return and object containing the clock values</li>
+        <li>Other commands typically return a positive SID number upon successful operation.</li>
+      </ul>
+      <hr>
       Additional details are sent in <code>msg.fins</code> - use a debug node set to "show complete message" to inspect the available properties.
     </dd>
   </dl>
