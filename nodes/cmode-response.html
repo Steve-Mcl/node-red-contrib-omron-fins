@@ -1,0 +1,31 @@
+<script type="text/javascript">
+    RED.nodes.registerType('C-Mode Response', {
+        category: 'OMRON',
+        color: '#0090d4',
+        defaults: {
+            name: { value: "" },
+            wordNumber: { value: 0 },
+        },
+        inputs: 1,
+        outputs: 1,
+        inputLabels: "C-Mode response",
+        outputLabels: "Command result",
+        align: "right",
+        icon: "read.png",
+        label: function () {
+            return this.name || "C-Mode Response";
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="CMode Response">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="C-Mode Response">
+    <p>A node to interpret the C-Mode Command Response from an Omron PLC</p>
+    <p>The input of this node must be the response from a PLC (via a serial node or TCP node) which originated from a C-Mode command node</p>
+</script>
