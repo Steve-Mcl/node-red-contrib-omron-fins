@@ -1,5 +1,7 @@
 module.exports = function (RED) {
-    const C_MODE = require("./_cmode.js");
+    // eslint-disable-next-line no-debugger
+    // debugger
+    const C_MODE = require("../lib/_cmode.js");
     const cmodeCache = {
         CSJP: new C_MODE.CModeHelper("CSJP"),
         CV: new C_MODE.CModeHelper("CV"),

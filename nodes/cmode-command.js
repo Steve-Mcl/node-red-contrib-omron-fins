@@ -1,6 +1,8 @@
 module.exports = function (RED) {
-    const C_MODE = require("./_cmode.js");
- 
+    // eslint-disable-next-line no-debugger
+    // debugger
+    const C_MODE = require('../lib/_cmode.js');
+
     function OmronCModeCommand(config) {
         RED.nodes.createNode(this, config);
         const node = this;
@@ -15,28 +17,32 @@ module.exports = function (RED) {
         node.p3 = config.p3;
         node.noOfWord = config.noOfWord;
         const cmode = new C_MODE.CModeHelper(node.plcSeries);
-
+        function getParamValue(paramNo, msg) {
+            const paramName = "p" + paramNo;
+            return node[paramName] || msg[paramName];
+        }
         node.on('input', function (msg) {
             const cModeCommand = {timestamp: Date.now()};
             cModeCommand.plcSeries = node.plcSeries;
             cModeCommand.header = '@';
             cModeCommand.hostNumber = (node.hostNumber || msg.hostNumber) || "00";
             cModeCommand.headerCode = node.headerCode || msg.headerCode;
-            cModeCommand.p1 = node.p1 || msg.p1;
-            cModeCommand.p2 = node.p2 || msg.p2;
-            cModeCommand.p3 = node.p3 || msg.p3;
+            // cModeCommand.p1 = node.p1 || msg.p1;
+            // cModeCommand.p2 = node.p2 || msg.p2;
+            // cModeCommand.p3 = node.p3 || msg.p3;
             cModeCommand.params = [];
-            const commandParamValues = []
+            const commandParamValues = [];
 
             const command = cmode.getCommand(cModeCommand.headerCode);
             if(command) {
                 for (let index = 0; index < command.request.length; index++) {
                     const param = { ...command.request[index] };
                     const paramNo = index + 1;
-                    const paramId = "p" + paramNo;
-                    const paramValue = cModeCommand[paramId];
+                    const paramName = "p" + paramNo;
+                    const paramValue = getParamValue(paramNo, msg);
+                    cModeCommand[paramName] = paramValue;
                     if(param.required && paramValue == null) {
-                        throw new Error(`Param ${paramId} (${param.name}) is required`)
+                        throw new Error(`Param ${paramName} (${param.name}) is required`)
                     }
                     if(param.required === false && paramValue == null) {
                         continue;

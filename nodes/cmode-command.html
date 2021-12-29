@@ -19,132 +19,10 @@
     }
 </style>
 
+<script src="omron-fins/lib/_cmode.js"></script>
+
 <script type="text/javascript">
     (function () {
-
-        const COMMANDS = [
-            {
-                headerCode: "RR",
-                name: "CIO AREA READ – – RR",
-                hint: "Reads the contents of the specified number of CIO words starting from the specified word",
-                request: [
-                    {name: "Address", type: "bcd4", min: 0, max: 6143, required: true, hint: "Beginning Word 0 to 6143"},
-                    {name: "Length", type: "bcd4", min: 1, max: 6144, required: true, hint: "Number of words 1 to 6144"}
-                ],
-                response: [{name: "Data", type: "uint[]", min: 1, max: 6144, required: true, hint: "Data read from PLC"}],
-            },
-            {
-                headerCode: "RL",
-                name: "LR AREA READ – – RL",
-                hint: "Treats CIO 1000 to CIO 1199 as a data link area and reads the contents of the specified number of words starting from the specified word",
-                request: [
-                    {name: "Address", type: "bcd4", min: 0, max: 199, required: true, hint: "Beginning Word 0 to 199"},
-                    {name: "Length", type: "bcd4", min: 1, max: 200, required: true, hint: "Number of words 1 to 200"}
-                ],
-                response: [{name: "Data", type: "uint[]", min: 1, max: 200, required: true, hint: "Data read from PLC"}],
-            },
-            {
-                headerCode: "RH",
-                name: "HR AREA READ – – RH",
-                hint: "Reads the contents of the specified number of HR words starting from the specified word",
-                request: [
-                    {name: "Address", type: "bcd4", min: 0, max: 511, required: true, hint: "Beginning Word 0 to 511"},
-                    {name: "Length", type: "bcd4", min: 1, max: 512, required: true, hint: "Number of words 1 to 512"}
-                ],
-                response: [{name: "Data", type: "uint[]", min: 1, max: 200, required: true, hint: "Data read from PLC"}],
-            },
-            {
-                headerCode: "RC",
-                name: "TIMER/COUNTER PV READ – – RC",
-                hint: "Reads the contents of the specified number of timer/counter PVs (present values T0000 to T2047 or C0000 to C2047) starting from the specified timer/counter",
-                request: [
-                    {name: "Address", type: "bcd4", min: 0, max: 4095, required: true, hint: "Beginning Word: Timer 0~2047 use 0~2047, Counter 0~2047 use 2047~4095"},
-                    {name: "Length", type: "bcd4", min: 1, max: 2048, required: true, hint: "Number of words 1 to 2048"}
-                ],
-                response: [{name: "Data", type: "bcd4[]", min: 1, max: 2048, required: true, hint: "Data read from PLC"}],
-            },
-            {
-                headerCode: "RG",
-                name: "TIMER/COUNTER STATUS READ – – RG",
-                hint: "Reads the ON/OFF status of the Completion Flags of the specified number of timers/counters starting from the designated word (T0000 to T2047 or C0000 to C2047).",
-                request: [
-                    {name: "Address", type: "bcd4", min: 0, max: 4095, required: true, hint: "Beginning Word: Timer 0~2047 use 0~2047, Counter 0~2047 use 2047~4095"},
-                    {name: "Length", type: "bcd4", min: 1, max: 2048, required: true, hint: "Number of words 1 to 2048"}
-                ],
-                response: [{name: "Data", type: "bool[]", min: 1, max: 2048, required: true, hint: "Data read from PLC"}],
-            },
-            {
-                headerCode: "RD",
-                name: "DM AREA READ – – RD",
-                hint: "Reads the contents of the specified number of DM words starting from the specified word (D00000 to D09999)",
-                request: [
-                    {name: "Address", type: "bcd4", min: 0, max: 9999, required: true, hint: "Beginning Word 0 to 9999"},
-                    {name: "Length", type: "bcd4", min: 1, max: 9999, required: true, hint: "Number of words 1 to 9999"}
-                ],
-                response: [{name: "Data", type: "uint[]", min: 1, max: 6144, required: true, hint: "Data read from PLC"}],
-            },
-            {
-                headerCode: "RE",
-                name: "EM AREA READ – – RE",
-                hint: "Reads the contents of the specified number of EM words (E00000 to E09999) starting from the specified word in the specified EM bank",
-                request: [
-                    {name: "Bank", type: "uint", min: 0, max: 0xc, required: true, hint: "Bank No 0 to 12 (bank 0 ~ bank C)"},
-                    {name: "Address", type: "bcd4", min: 0, max: 9999, required: true, hint: "Beginning Word 0 to 9999"},
-                    {name: "Length", type: "bcd4", min: 1, max: 9999, required: true, hint: "Number of words 1 to 9999"}
-                ],
-                response: [{name: "Data", type: "uint[]", min: 1, max: 6144, required: true, hint: "Data read from PLC"}],
-            },
-            {
-                headerCode: "RJ",
-                name: "AR AREA READ – – RJ",
-                hint: "Reads the contents of the specified number of Auxiliary Area words (A000 to A959) starting from the specified word",
-                request: [
-                    {name: "Address", type: "bcd4", min: 0, max: 959, required: true, hint: "Beginning Word 0 to 959"},
-                    {name: "Length", type: "bcd4", min: 1, max: 960, required: true, hint: "Number of words 1 to 960"}
-                ],
-                response: [{name: "Data", type: "uint[]", min: 1, max: 6144, required: true, hint: "Data read from PLC"}],
-            },
-
-
-            {
-                headerCode: "WR",
-                name: "CIO AREA WRITE – – WR",
-                hint: "Writes data to the CIO Area (CIO 0000 to CIO 6143) starting from the specified word. Writing is done in word units",
-                request: [
-                    {name: "Address", type: "bcd4", min: 0, max: 6143, required: true, hint: "Beginning Word 0 to 6143"},
-                    {name: "Data", type: "uint[]", min: 1, max: 6144, required: true, hint: "Write data (single or array)"}
-                ],
-                response: [],
-            },
-
-
-
-            {
-                headerCode: "TS",
-                name: "TEST",
-                hint: "Returns, unaltered, one block of data transmitted from the host computer",
-                request: [{name: "data", type: "str", min: 1, max: 118, required: true, hint: "Any characters other than the carriage return"}],
-                response: [{name: "data", type: "str", min: 1, max: 118, required: true, hint: "The same characters specified in the command will be returned unaltered if the test is successful"}],
-            },
-
-            {
-                headerCode: "MM",
-                name: "PLC MODEL READ – – MM",
-                hint: "Reads the model code of the CPU Unit",
-                request: [],
-                response: [
-                    {
-                        name: "data", type: "str", length: 2, required: true, hint: "The model code of the CPU Unit",
-                        parser: e => { 
-                            return {
-                                code: e,
-                                model: MODEL_CODES[e] || "Unknown"
-                            }
-                        }
-                    }
-                ],
-            },
-        ]
 
         function __resize(node) {
             if (!node._sizeHackTimer) {
@@ -164,7 +42,7 @@
                 name: { value: "" },
                 plcSeries: { value: "CSJP" },
                 hostNumber: { value: 0 },
-                headerCode: { value: "TS" },
+                headerCode: { value: "RR" },
                 p1: { value: "" },
                 p2: { value: "" },
                 p3: { value: "" },
@@ -178,24 +56,43 @@
             },
             oneditprepare() {
                 const node = this;
-                debugger
                 const $headerCodeDropdown = $("#node-input-headerCode");
-                const cmd = COMMANDS.find(e=>e.headerCode==node.headerCode);
-                for (let index = 0; index < COMMANDS.length; index++) {
-                    const param = COMMANDS[index];
-                    const o = new Option(param.name, param.headerCode, param.headerCode == node.headerCode);
-                    $(o).html(param.name);// jquery(ify) the DOM object so we can use the html method
-                    $headerCodeDropdown.append(o);
-                }
-                
-                const other = new Option("- set by msg.headerCode -", "");
-                $(other).html(other.text);// jquery(ify) the DOM object so we can use the html method
-                $headerCodeDropdown.append(other);
+                const $plcSeriesSelect = $("#node-input-plcSeries");
+                debugger
+                let cmode = new C_MODE.CModeHelper(node.plcSeries);
+                let plcSeries = node.plcSeries;
+                let headerCode = node.headerCode;
+                let commands = cmode.commands || [];
+                $plcSeriesSelect.on("change", function() {
+                    // const prevHeaderCode = $headerCodeDropdown.val();
+                    plcSeries = $(this).val();
+                    $headerCodeDropdown.html("");//clear entries
+                    try {
+                        cmode = new C_MODE.CModeHelper(plcSeries);
+                        commands = (cmode && cmode.commands) || [];
+                        for (let index = 0; index < commands.length; index++) {
+                            const param = commands[index];
+                            const o = $(new Option(param.name, param.headerCode, param.headerCode == node.headerCode));
+                            o.html(param.name);
+                            $headerCodeDropdown.append(o);
+                        }
+                    } catch (error) {
+                        console.log(error)
+                        return;
+                    }
+                    const other = new Option("- set by msg.headerCode -", "");
+                    $(other).html(other.text);// jquery(ify) the DOM object so we can use the html method
+                    $headerCodeDropdown.append(other);
+                    if(cmode.getCommand(headerCode)) {
+                        $headerCodeDropdown.val(headerCode).trigger("change");
+                    } else {
+                        $headerCodeDropdown.val("").trigger("change");
+                    }
+                })
 
                 $headerCodeDropdown.on("change", function(e) {
-                    debugger
-                    const hc = $(this).val();
-                    const cmd = COMMANDS.find(e=>e.headerCode==hc);
+                    headerCode = $(this).val();
+                    const cmd = headerCode ? cmode.getCommand(headerCode) : null;
                     const $paramRows = [$(".form-row.c-mode-param-row.param-row-1"), $(".form-row.c-mode-param-row.param-row-2"), $(".form-row.c-mode-param-row.param-row-3")];
                     const $paramLabels = [$(".form-row.c-mode-param-row.param-row-1 > label:first-of-type"), $(".form-row.c-mode-param-row.param-row-2 > label:first-of-type"), $(".form-row.c-mode-param-row.param-row-3 > label:first-of-type")];
                     const $paramValues = [$(".form-row.c-mode-param-row.param-row-1 > input:first-of-type"), $(".form-row.c-mode-param-row.param-row-2 > input:first-of-type"), $(".form-row.c-mode-param-row.param-row-3 > input:first-of-type")];
@@ -230,19 +127,24 @@
                         $("#c-mode-tip-header-code").show();
                     }
                 })
-
+                
                 //hack - prevent node-red calculating UI panel too large due to long text in the tip
                 $(".c-mode-form-tip").css("max-width","450px");
                 $(".c-mode-form-tip").hide();//will get show / hid as required when function type is set
                 $(".c-mode-param-row").css("max-width","450px");
                 $(".c-mode-param-row").hide();
 
-                $headerCodeDropdown.trigger("change");
+                $plcSeriesSelect.val(plcSeries);
 
                 __resize(node);
             },
             oneditresize: function(size) {
                 __resize(this);
+            },
+            oneditsave: function(size) {
+                debugger
+                this.plcSeries = $("#node-input-plcSeries").val();
+                this.headerCode = $("#node-input-headerCode").val();
             }
         });
     })()
@@ -255,7 +157,9 @@
     </div>
     <div class="form-row c-mode-row">
         <label for="node-input-plcSeries"><i class="fa fa-tag"></i> PLC Type</span></label>
-        <select id="node-input-plcSeries" style="width: calc(100% - 150px)">
+
+        <select id="node-input-plcSeries" style="width: calc(100% - 150px)">;
+
             <option value="CSJP">CS/CJ/CP</option>
             <option value="CV">CV500/CV1000/CV2000/CVM1</option>
             <option value="Calpha">C/CPM/CPL/CQM</option>

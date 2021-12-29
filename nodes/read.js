@@ -25,7 +25,7 @@ SOFTWARE.
 
 module.exports = function (RED) {
     const connection_pool = require('../connection_pool.js');
-    const dataParser = require('./_parser');
+    const dataParser = require('../lib/_parser');
 
     function omronRead(config) {
         RED.nodes.createNode(this, config);

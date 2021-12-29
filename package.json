@@ -24,7 +24,8 @@
             "omronConnection": "nodes/connection.js",
             "omronControl": "nodes/control.js",
             "OmronCModeCommand": "nodes/cmode-command.js",
-            "OmronCModeResponse": "nodes/cmode-response.js"
+            "OmronCModeResponse": "nodes/cmode-response.js",
+            "app": "app.js"
         }
     },
     "license": "MIT",
