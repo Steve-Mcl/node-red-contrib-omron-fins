@@ -58,7 +58,7 @@
                 const node = this;
                 const $headerCodeDropdown = $("#node-input-headerCode");
                 const $plcSeriesSelect = $("#node-input-plcSeries");
-                debugger
+                // debugger
                 let cmode = new C_MODE.CModeHelper(node.plcSeries);
                 let plcSeries = node.plcSeries;
                 let headerCode = node.headerCode;
@@ -142,7 +142,7 @@
                 __resize(this);
             },
             oneditsave: function(size) {
-                debugger
+                // debugger
                 this.plcSeries = $("#node-input-plcSeries").val();
                 this.headerCode = $("#node-input-headerCode").val();
             }
@@ -153,12 +153,12 @@
 <script type="text/html" data-template-name="C-Mode Command">
     <div class="form-row c-mode-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name" style="width: calc(100% - 150px)" placeholder="Name">
+        <input type="text" id="node-input-name" style="width: calc(100% - 168px)" placeholder="Name">
     </div>
     <div class="form-row c-mode-row">
         <label for="node-input-plcSeries"><i class="fa fa-tag"></i> PLC Type</span></label>
 
-        <select id="node-input-plcSeries" style="width: calc(100% - 150px)">;
+        <select id="node-input-plcSeries" style="width: calc(100% - 168px)">;
 
             <option value="CSJP">CS/CJ/CP</option>
             <option value="CV">CV500/CV1000/CV2000/CVM1</option>
@@ -167,15 +167,15 @@
     </div>
     <div class="form-row c-mode-row">
         <label for="node-input-hostNumber"><i class="fa fa-tag"></i> Host Number</span></label>
-        <input type="text" id="node-input-hostNumber" style="width: calc(100% - 150px)" placeholder="Host Number">
+        <input type="text" id="node-input-hostNumber" style="width: calc(100% - 168px)" placeholder="Host Number">
     </div>
     <div class="form-row c-mode-row">
         <label for="node-input-headerCode"><i class="fa fa-tag"></i> Header Code</label>
-        <select id="node-input-headerCode" style="width: calc(100% - 150px)" >
+        <select id="node-input-headerCode" style="width: calc(100% - 168px)" >
         </select>
         <br>
         <label>&nbsp;</label>
-        <div id="c-mode-tip-header-code" class="c-mode-form-tip paramtip"  style="width: calc(100% - 150px); max-width: 450px" hidden></div>
+        <div id="c-mode-tip-header-code" class="c-mode-form-tip paramtip form-tips"  style="width: calc(100% - 150px); max-width: 450px" hidden></div>
     </div>
 
     <div class="form-row c-mode-row c-mode-param-row param-row-1">
@@ -183,21 +183,21 @@
         <input type="text" id="node-input-p1" style="width: calc(100% - 150px)" >
         <br>
         <label>&nbsp;</label>
-        <div id="c-mode-tip-p1" class="c-mode-form-tip paramtip"  style="width: calc(100% - 150px); max-width: 450px" hidden></div>
+        <div id="c-mode-tip-p1" class="c-mode-form-tip paramtip form-tips"  style="width: calc(100% - 150px); max-width: 450px" hidden></div>
     </div>
     <div class="form-row c-mode-row c-mode-param-row param-row-2">
         <label for="node-input-p2"><i class="fa fa-tag"></i> Parameter</label>
         <input type="text" id="node-input-p2" style="width: calc(100% - 150px)" >
         <br>
         <label>&nbsp;</label>
-        <div id="c-mode-tip-p2" class="c-mode-form-tip paramtip"  style="width: calc(100% - 150px); max-width: 450px" hidden></div>
+        <div id="c-mode-tip-p2" class="c-mode-form-tip paramtip form-tips"  style="width: calc(100% - 150px); max-width: 450px" hidden></div>
     </div>
     <div class="form-row c-mode-row c-mode-param-row param-row-3">
         <label for="node-input-p3"><i class="fa fa-tag"></i> Parameter</label>
         <input type="text" id="node-input-p3" style="width: calc(100% - 150px)" >
         <br>
         <label>&nbsp;</label>
-        <div id="c-mode-tip-p3" class="c-mode-form-tip paramtip"  style="width: calc(100% - 150px); max-width: 450px" hidden></div>
+        <div id="c-mode-tip-p3" class="c-mode-form-tip paramtip form-tips"  style="width: calc(100% - 150px); max-width: 450px" hidden></div>
     </div>
 </script>
 
