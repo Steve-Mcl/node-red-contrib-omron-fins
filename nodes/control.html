@@ -148,8 +148,6 @@ SOFTWARE.
             currentType = defType;
             currentValue =  defVal || "";
           } 
-        } else {
-          currentType =  defVal || "";
         }
 
         $ti.typedInput("type", currentType);
@@ -203,9 +201,6 @@ SOFTWARE.
       });
       $commandField.trigger('change');
 
-      
-    },
-    oneditresize() {
       setTimeout(() => {
         $('#omron-fins-command-tip').css('max-width', 'unset');
       }, 250);
@@ -232,7 +227,7 @@ SOFTWARE.
     <input style="width:70%" type="text" id="node-input-command" placeholder="">
     <br>
     <label>&nbsp;</label>
-    <div id="omron-fins-command-tip" class="form-tips"></div>
+    <div id="omron-fins-command-tip" class="form-tips" style="max-width:300px;"></div>
   </div>
   <div id="node-red-contrib-omron-fins-control-clock-row" class="form-row omron-fins-form-row">
     <label for="node-input-clock"><i class="fa fa-clock-o"></i> <span data-i18n="read.label.clock"> Clock Value</span></label>

@@ -2,7 +2,7 @@ node-red-contrib-omron-fins
 ===========================
 
 ## Overview
-This is a Node-RED node module to directly interface with OMRON PLCs over FINS Ethernet protocol. 
+This is a Node-RED node module to directly interface with OMRON PLCs over Ethernet (FINS protocol) or Serial (Hostlink protocol). 
 Tested on CV, CP, CS, CJ, NJ and NX PLCs (the ones with FINS support)
 
 Example flows have been included to help you get started. 
@@ -23,17 +23,14 @@ In the node-red editor, click the hamburger menu, select <b>import</b> then <b>e
   * Set PLC RUN/MONITOR mode
   * Get Clock
   * Set Clock
-
-## Version Update Notes
-This release (and possibly future releases up to V1.0.0) has breaking changes.
-Where possible, I make every attempt to keep things compatible, but as node-red improves (typedInput widgets for example) I too improve this node to make things easier or better. And sometimes, it becomes plain obvious a wrong decision was made that needs to be rectified before it becomes too late to change - it happens :)
-Semantic Versioning 2.0.0 will be followed after V1 however for now, where you see `V0.x.y`...
-* `x` = major / minor change
-* `y` = patch / bugfix
+* C-Mode Command - A node to build a C-Mode command that can be transmitted to a serial port (hostlink protocol)
+* C-Mode Response - A node to decode the C-Mode command response (hostlink protocol)
 
 ## Tips
-* On a reasonable VM, I have managed to achieve polling speeds less than 10ms (100+ reads per second) HOWEVER this really taxes NODE and Node-red. Through usage and testing, this node works very well polling 10 times per second (100ms poll time). This is often more than enough for UI type applications
-* Where possible, group your items together in the PLC and do 1 large read as opposed to multiple small reads.  Reading 20 WDs from 1 location is much faster than reading 20 single items. An additional benefit of reading multiple items in one poll is the data is consistent (i.e. all values were read at on the same PLC poll) 
+* On a reasonable VM, I have managed to achieve polling over UDP at speeds less than 10ms (100+ reads per second) 
+  * HOWEVER this really taxes NODE and Node-red. Through usage and testing, this node works very well polling 10 times per second (100ms poll time). This is often more than enough for UI type applications
+* Where possible, group your items together in the PLC and do 1 large read as opposed to multiple small reads.  
+  * Reading 20 WDs from 1 location is much faster than reading 20 single items. An additional benefit of reading multiple items in one poll is the data is consistent (i.e. all values were read at on the same PLC poll) 
 
 ## Prerequisites
 

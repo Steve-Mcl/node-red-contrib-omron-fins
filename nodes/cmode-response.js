@@ -17,10 +17,24 @@ module.exports = function (RED) {
 
         node.on('input', function (msg) {
             try {
-                const response = (msg.payload || '').trim();//remove CR etc
-                const startMarkOK = response.startsWith("@");//get startMark
-                const endMarkOK = response.endsWith("*");//get endMark
-                const endCode = response.substr(5, 2);
+                const response = (msg.payload ? msg.payload.toString() : '').trim()
+                msg.cModeResponse = {timestamp: Date.now(), response}
+
+                const startMark = response.slice(0,1)
+                const endMark = response.slice(-1)
+                const startMarkOK = startMark === "@";
+                const endMarkOK = endMark === "*";//TODO: Support frames
+                const hostNumber = response.substr(1,2);
+                const headerCode = response.substr(3,2);
+                let endCode = response.substr(5, 2);
+                let dataStart = 7;
+
+                msg.cModeResponse.startMark = startMark
+                msg.cModeResponse.endMark = endMark
+                msg.cModeResponse.hostNumber = hostNumber
+                msg.cModeResponse.headerCode = headerCode
+                msg.cModeResponse.endCode = endCode
+
                 if(!startMarkOK) {
                     throw new Error("Invalid C-Mode Response. Expected a string beginning with @")
                 }
@@ -35,25 +49,27 @@ module.exports = function (RED) {
                 if(!cmode) {
                     throw new Error("Invalid msg. Expected msg.cModeCommand.plcSeries to contain a valid PLC Series of 'CSJP', 'CV' or 'Calpha'")
                 }
+                if(headerCode === 'TS') {
+                    if(response === (msg.request_payload || '').trim()) {
+                        endCode = '00'
+                        msg.cModeResponse.endCode = endCode
+                        dataStart -= 2
+                    }
+                }
                 if (endCode !== '00') {
                     const ec = cmode.parseEndCode(endCode);
                     throw new Error(ec);
                 }
 
                 //TODO: move the parsing into C_MODE
-                const dataStart = 7;
                 const totalLength = response.length;
-                const dataLength = totalLength - 10;
-                const hostNumber = response.substr(1,2);
-                const headerCode = response.substr(3,2);
+                const dataLength = totalLength - dataStart - 3 /* 3 = 2 for CRC and 1 for asterix */;
+                
                 const data = response.substr(dataStart, dataLength);
-                const CRCin = parseInt(response.substr(dataStart+dataLength, 2), 16);
-                let CRC = 0;
-                for (let ch = 0; ch <= (totalLength - 4); ch++) {
-                    CRC = response.charCodeAt(ch) ^ CRC;
-                }
-                if(CRCin !== CRC) {
-                    throw new Error(`Invalid frame check sequence. Received CRC ${CRCin.toString(16)}, expected ${CRC.toString(16)}`)
+                const CRC = parseInt(response.substr(dataStart + dataLength, 2), 16)
+                const CRCcalc = C_MODE.CModeHelper.calculateFCS(response.slice(0, -3))
+                if(CRC !== CRCcalc) {
+                    throw new Error(`Invalid frame check sequence. Received CRC ${CRC.toString(16)}, expected ${CRCcalc.toString(16)}`)
                 }
                 if(msg.cModeCommand.hostNumber != hostNumber) {
                     throw new Error(`Unexpected host number. Received ${hostNumber}, expected ${msg.cModeCommand.hostNumber}`)
@@ -61,16 +77,11 @@ module.exports = function (RED) {
                 if(msg.cModeCommand.headerCode != headerCode) {
                     throw new Error(`Unexpected header code. Received ${headerCode}, expected ${msg.cModeCommand.headerCode}`)
                 }
+                msg.cModeResponse.data = data
+                msg.cModeResponse.CRC = CRC
+                msg.cModeResponse.CRCCalc = CRCcalc
+                
                 const command = cmode.getCommand(headerCode);
-                msg.cModeResponse = {
-                    timestamp: Date.now(),
-                    response,
-                    hostNumber,
-                    headerCode,
-                    data,
-                    CRC: CRCin,
-                    CRCCalc: CRC
-                }
                 if(!command) {
                     //command not explicitly supported, lets just return the data
                     msg.payload = {
@@ -79,21 +90,26 @@ module.exports = function (RED) {
                     node.send(msg);
                 } else {
                     msg.cModeResponse.params = [];
-                    msg.payload = {};
-                    for (let index = 0; index < command.response.length; index++) {
-                        const param = { ...command.response[index] };
-                        const paramNo = index + 1;
-                        const paramName = param.name;
-                        const paramType = param.type;
-                        const paramHint = param.hint;
-                        const parser = param.parser || (e => e);
-                        const paramValue = parser(data);
-                        msg.cModeResponse.params.push({
-                            paramNo, paramName, paramType, paramHint, paramValue
-                        });
-                        msg.payload[paramName] = paramValue;
-                        msg.payload.buffer = Buffer.from(data,"hex");
+                    if(command.response.length === 0) {
+                        msg.payload = true
                         node.send(msg);
+                    } else {
+                        msg.payload = {};
+                        for (let index = 0; index < command.response.length; index++) {
+                            const param = { ...command.response[index] };
+                            const paramNo = index + 1;
+                            const paramName = param.name;
+                            const paramType = param.type;
+                            const paramHint = param.hint;
+                            const parser = param.parser || (e => e);
+                            const paramValue = parser(data);
+                            msg.cModeResponse.params.push({
+                                paramNo, paramName, paramType, paramHint, paramValue
+                            });
+                            msg.payload[paramName] = paramValue;
+                            msg.payload.buffer = Buffer.from(data,"hex");
+                            node.send(msg);
+                        }
                     }
                 }
 

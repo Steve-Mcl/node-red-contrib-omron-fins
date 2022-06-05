@@ -161,8 +161,6 @@ SOFTWARE.
             currentType = defType;
             currentValue =  defVal || "";
           } 
-        } else {
-          currentType =  defVal || "";
         }
 
         $ti.typedInput("type", currentType);
@@ -199,8 +197,6 @@ SOFTWARE.
         }
         $("#omron-fins-outputFormat-tip").html(v)
       });
-    },
-    oneditresize() {
       setTimeout(function() {
         $("#omron-fins-outputFormat-tip").css("max-width", "unset");
       }, 250);
@@ -232,7 +228,7 @@ SOFTWARE.
     <input style="width:70%" type="text" id="node-input-outputFormat" placeholder="">
     <br>
     <label>&nbsp;</label>
-    <div id="omron-fins-outputFormat-tip" class="form-tips"></div>
+    <div id="omron-fins-outputFormat-tip" class="form-tips" style="max-width:300px;"></div>
   </div>   
 </script>
 

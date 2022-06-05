@@ -39,14 +39,17 @@ module.exports = function (RED) {
                     const param = { ...command.request[index] };
                     const paramNo = index + 1;
                     const paramName = "p" + paramNo;
-                    const paramValue = getParamValue(paramNo, msg);
-                    cModeCommand[paramName] = paramValue;
+                    let paramValue = getParamValue(paramNo, msg);
                     if(param.required && paramValue == null) {
                         throw new Error(`Param ${paramName} (${param.name}) is required`)
                     }
                     if(param.required === false && paramValue == null) {
                         continue;
                     }
+                    if(param.type === 'uint[]' && typeof paramValue === "string") {
+                        paramValue = JSON.parse(paramValue)
+                    }
+                    cModeCommand[paramName] = paramValue;
                     param.value = paramValue;
                     cModeCommand.params.push(param);
                     commandParamValues.push(param.value);
